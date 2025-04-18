@@ -21,12 +21,14 @@ import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.util.SessionManager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.zxing.ResultPoint;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class QRScannerActivity extends AppCompatActivity {
@@ -73,11 +75,18 @@ public class QRScannerActivity extends AppCompatActivity {
         barcodeView.decodeContinuous(new BarcodeCallback() {
             @Override
             public void barcodeResult(BarcodeResult result) {
-                // Stop scanning when a QR code is detected
-                barcodeView.pause();
+                if (result != null && result.getText() != null) {
+                    // Stop scanning when a QR code is detected
+                    barcodeView.pause();
 
-                // Process the scan result
-                processScanResult(result.getText());
+                    // Process the scan result
+                    processScanResult(result.getText());
+                }
+            }
+
+            @Override
+            public void possibleResultPoints(List<ResultPoint> resultPoints) {
+                // Implement this required method (can be empty)
             }
         });
     }

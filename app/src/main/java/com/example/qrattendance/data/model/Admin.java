@@ -6,9 +6,19 @@ public class Admin extends User {
     private AdminPrivilegeLevel privilegeLevel;
 
     public enum AdminPrivilegeLevel {
-        SUPER_ADMIN,
-        DEPARTMENT_ADMIN,
-        COURSE_ADMIN
+        SUPER_ADMIN("SUPER_ADMIN"),
+        DEPARTMENT_ADMIN("DEPARTMENT_ADMIN"),
+        COURSE_ADMIN("COURSE_ADMIN");
+
+        private final String value;
+
+        AdminPrivilegeLevel(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
     // Default constructor

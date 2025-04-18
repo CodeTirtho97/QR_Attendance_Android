@@ -14,9 +14,19 @@ public class QRCode {
     private QRCodeType type;
 
     public enum QRCodeType {
-        SESSION_ATTENDANCE,
-        COURSE_ENROLLMENT,
-        USER_VERIFICATION
+        SESSION_ATTENDANCE("SESSION_ATTENDANCE"),
+        COURSE_ENROLLMENT("COURSE_ENROLLMENT"),
+        USER_VERIFICATION("USER_VERIFICATION");
+
+        private final String value;
+
+        QRCodeType(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
     // Default constructor

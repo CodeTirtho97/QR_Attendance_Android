@@ -13,9 +13,19 @@ public abstract class User {
     private UserRole role;
 
     public enum UserRole {
-        STUDENT,
-        INSTRUCTOR,
-        ADMIN
+        STUDENT("STUDENT"),
+        INSTRUCTOR("INSTRUCTOR"),
+        ADMIN("ADMIN");
+
+        private final String value;
+
+        UserRole(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
     // Default constructor
