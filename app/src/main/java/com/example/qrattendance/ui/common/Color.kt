@@ -1,4 +1,4 @@
-package com.example.qrattendance.ui.theme
+package com.example.qrattendance.ui.common
 
 import androidx.compose.ui.graphics.Color
 

@@ -16,10 +16,6 @@ import com.example.qrattendance.data.repository.AuthRepository;
 import com.example.qrattendance.ui.auth.LoginActivity;
 import com.example.qrattendance.util.SessionManager;
 
-/**
- * InstructorDashboardActivity serves as the main screen for instructor users.
- * It will display courses, generate QR codes, and manage attendance records.
- */
 public class InstructorDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
@@ -40,9 +36,6 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         setupUserInfo();
     }
 
-    /**
-     * Initialize UI components
-     */
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeInstructor);
 
@@ -53,9 +46,6 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Set up user info in the dashboard
-     */
     private void setupUserInfo() {
         Instructor instructor = (Instructor) sessionManager.getUserData();
         if (instructor != null) {
@@ -79,9 +69,6 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Logout the current user and redirect to login screen
-     */
     private void logout() {
         authRepository.logout();
         sessionManager.clearSession();

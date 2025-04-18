@@ -166,9 +166,9 @@ public class Course {
     }
 
     /**
-     * Adds a student ID to the course's enrolled students list
+     * Adds a student to the course
      * @param studentId The ID of the student to enroll
-     * @return true if the student was successfully enrolled, false if already enrolled
+     * @return true if student was successfully enrolled, false if already enrolled
      */
     public boolean enrollStudent(String studentId) {
         if (!this.enrolledStudentIds.contains(studentId)) {
@@ -179,16 +179,16 @@ public class Course {
     }
 
     /**
-     * Removes a student ID from the course's enrolled students list
-     * @param studentId The ID of the student to un-enroll
-     * @return true if the student was successfully un-enrolled, false otherwise
+     * Removes a student from the course
+     * @param studentId The ID of the student to remove
+     * @return true if student was successfully removed, false otherwise
      */
     public boolean unenrollStudent(String studentId) {
         return this.enrolledStudentIds.remove(studentId);
     }
 
     /**
-     * Adds a session ID to the course's sessions list
+     * Adds a session to the course
      * @param sessionId The ID of the session to add
      */
     public void addSession(String sessionId) {
@@ -198,9 +198,9 @@ public class Course {
     }
 
     /**
-     * Removes a session ID from the course's sessions list
+     * Removes a session from the course
      * @param sessionId The ID of the session to remove
-     * @return true if the session was successfully removed, false otherwise
+     * @return true if session was successfully removed, false otherwise
      */
     public boolean removeSession(String sessionId) {
         return this.sessionIds.remove(sessionId);

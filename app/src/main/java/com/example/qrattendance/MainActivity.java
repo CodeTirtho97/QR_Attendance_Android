@@ -18,11 +18,6 @@ import com.example.qrattendance.ui.student.StudentDashboardActivity;
 import com.example.qrattendance.util.SessionManager;
 import com.google.firebase.FirebaseApp;
 
-/**
- * MainActivity serves as the entry point of the application.
- * It handles Firebase initialization and redirects users to the appropriate screen
- * based on their authentication status and role.
- */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
@@ -49,9 +44,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Redirect user to the appropriate dashboard based on their role
-     */
     private void redirectBasedOnUserRole() {
         User user = SessionManager.getInstance(this).getUserData();
         if (user == null) {
@@ -81,9 +73,6 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    /**
-     * Redirect user to the login screen
-     */
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         startActivity(intent);

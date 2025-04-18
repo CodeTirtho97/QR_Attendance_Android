@@ -3,15 +3,11 @@ package com.example.qrattendance.data.model;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Instructor class representing an instructor user in the system.
- * Instructors can create courses, manage class sessions, and generate QR codes for attendance.
- */
 public class Instructor extends User {
     private String employeeId;
     private String department;
     private String designation;
-    private List<String> coursesIds; // Courses taught by this instructor
+    private List<String> coursesIds;
     private List<String> generatedQRCodeIds;
 
     // Default constructor
@@ -22,7 +18,7 @@ public class Instructor extends User {
         this.generatedQRCodeIds = new ArrayList<>();
     }
 
-    // Parameterized constructor
+    // Constructor with parameters
     public Instructor(String userId, String email, String name, String phoneNumber,
                       String employeeId, String department, String designation) {
         super(userId, email, name, phoneNumber, UserRole.INSTRUCTOR);
@@ -33,7 +29,7 @@ public class Instructor extends User {
         this.generatedQRCodeIds = new ArrayList<>();
     }
 
-    // Getters and Setters
+    // Getters and setters
     public String getEmployeeId() {
         return employeeId;
     }
@@ -74,29 +70,19 @@ public class Instructor extends User {
         this.generatedQRCodeIds = generatedQRCodeIds;
     }
 
-    /**
-     * Adds a course ID to the instructor's courses list
-     * @param courseId The ID of the course to add
-     */
+    // Add a course
     public void addCourse(String courseId) {
         if (!this.coursesIds.contains(courseId)) {
             this.coursesIds.add(courseId);
         }
     }
 
-    /**
-     * Removes a course ID from the instructor's courses list
-     * @param courseId The ID of the course to remove
-     * @return true if the course was successfully removed, false otherwise
-     */
+    // Remove a course
     public boolean removeCourse(String courseId) {
         return this.coursesIds.remove(courseId);
     }
 
-    /**
-     * Adds a QR code ID to the instructor's generated QR codes list
-     * @param qrCodeId The ID of the QR code to add
-     */
+    // Add a generated QR code
     public void addGeneratedQRCode(String qrCodeId) {
         if (!this.generatedQRCodeIds.contains(qrCodeId)) {
             this.generatedQRCodeIds.add(qrCodeId);
@@ -105,8 +91,6 @@ public class Instructor extends User {
 
     @Override
     public void accessDashboard() {
-        // Instructor-specific dashboard logic would be implemented here
-        // For now, this is a placeholder
-        System.out.println("Accessing Instructor Dashboard");
+        // Instructor-specific dashboard logic
     }
 }

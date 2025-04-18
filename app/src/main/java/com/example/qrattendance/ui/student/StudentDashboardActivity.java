@@ -16,10 +16,6 @@ import com.example.qrattendance.data.repository.AuthRepository;
 import com.example.qrattendance.ui.auth.LoginActivity;
 import com.example.qrattendance.util.SessionManager;
 
-/**
- * StudentDashboardActivity serves as the main screen for student users.
- * It will display attendance history, enrolled courses, and provide access to QR scanning.
- */
 public class StudentDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
@@ -40,9 +36,6 @@ public class StudentDashboardActivity extends AppCompatActivity {
         setupUserInfo();
     }
 
-    /**
-     * Initialize UI components
-     */
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeStudent);
 
@@ -53,9 +46,6 @@ public class StudentDashboardActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Set up user info in the dashboard
-     */
     private void setupUserInfo() {
         Student student = (Student) sessionManager.getUserData();
         if (student != null) {
@@ -79,9 +69,6 @@ public class StudentDashboardActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Logout the current user and redirect to login screen
-     */
     private void logout() {
         authRepository.logout();
         sessionManager.clearSession();

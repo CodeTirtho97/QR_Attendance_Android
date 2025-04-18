@@ -23,7 +23,7 @@
     <string name="student_id">Student ID</string>
     <string name="instructor_id">Instructor ID</string>
     <string name="login_here">Login</string>
-    <string name="invalid_password">Wrong Password</string>
+    <string name="invalid_password">Password must be at least 6 characters</string>
 
     <!-- User Types -->
     <string-array name="user_types">
@@ -62,31 +62,6 @@
     <string name="qr_valid_for">QR Code valid for: </string>
     <string name="share_qr">Share QR Code</string>
 
-    <!-- Attendance Reports -->
-    <string name="attendance_report">Attendance Report</string>
-    <string name="export_report">Export Report</string>
-    <string name="filter_by_course">Filter by Course</string>
-    <string name="filter_by_date">Filter by Date</string>
-    <string name="attendance_percentage">Attendance Percentage</string>
-    <string name="present">Present</string>
-    <string name="absent">Absent</string>
-    <string name="total_classes">Total Classes</string>
-
-    <!-- Reset Password Strings -->
-    <string name="reset_password">Reset Password</string>
-    <string name="reset_password_instructions">Enter your email address below, and we\'ll send you instructions to reset your password.</string>
-    <string name="email_hint">Enter your email address</string>
-    <string name="send_reset_link">Send Reset Link</string>
-    <string name="back_to_login">Back to Login</string>
-    <string name="reset_email_sent">Reset link sent! Check your email.</string>
-    <string name="success">Password Reset Successfully</string>
-    <string name="error">Password Reset Failed!</string>
-
-    <!-- You may need to add these common strings if they're missing -->
-    <string name="invalid_email">Please enter a valid email address</string>
-    <string name="field_required">This field is required</string>
-    <string name="ok">OK</string>
-
     <!-- Registration Strings -->
     <string name="create_account">Create Account</string>
     <string name="register_subtitle">Sign up to get started</string>
@@ -116,8 +91,17 @@
     <!-- Validation Messages -->
     <string name="error_passwords_dont_match">Passwords don\'t match</string>
     <string name="error_password_too_short">Password must be at least 6 characters</string>
+    <string name="invalid_email">Please enter a valid email address</string>
+    <string name="field_required">This field is required</string>
+    <string name="ok">OK</string>
+    <string name="error">Error</string>
 
-    <string name="background_light">#F5F5F5</string>
-    <string name="grey_600">#757575</string>
-    <string name="grey_400">#BDBDBD</string>
+    <!-- Reset Password Strings -->
+    <string name="reset_password">Reset Password</string>
+    <string name="reset_password_instructions">Enter your email address below, and we\'ll send you instructions to reset your password.</string>
+    <string name="email_hint">Enter your email address</string>
+    <string name="send_reset_link">Send Reset Link</string>
+    <string name="back_to_login">Back to Login</string>
+    <string name="reset_email_sent">Reset link sent! Check your email.</string>
+    <string name="success">Success</string>
 </resources>

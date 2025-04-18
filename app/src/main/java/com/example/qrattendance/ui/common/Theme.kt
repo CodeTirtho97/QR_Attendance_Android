@@ -1,6 +1,5 @@
-package com.example.qrattendance.ui.theme
+package com.example.qrattendance.ui.common
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

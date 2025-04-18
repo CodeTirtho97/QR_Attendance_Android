@@ -3,10 +3,6 @@ package com.example.qrattendance.data.model;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Student class representing a student user in the system.
- * Students can enroll in courses and mark their attendance by scanning QR codes.
- */
 public class Student extends User {
     private String rollNumber;
     private String department;
@@ -23,7 +19,7 @@ public class Student extends User {
         this.attendanceRecordIds = new ArrayList<>();
     }
 
-    // Parameterized constructor
+    // Constructor with parameters
     public Student(String userId, String email, String name, String phoneNumber,
                    String rollNumber, String department, String semester, String batch) {
         super(userId, email, name, phoneNumber, UserRole.STUDENT);
@@ -35,7 +31,7 @@ public class Student extends User {
         this.attendanceRecordIds = new ArrayList<>();
     }
 
-    // Getters and Setters
+    // Getters and setters
     public String getRollNumber() {
         return rollNumber;
     }
@@ -84,29 +80,19 @@ public class Student extends User {
         this.attendanceRecordIds = attendanceRecordIds;
     }
 
-    /**
-     * Adds a course ID to the student's enrolled courses list
-     * @param courseId The ID of the course to enroll in
-     */
+    // Enroll in a course
     public void enrollInCourse(String courseId) {
         if (!this.enrolledCourseIds.contains(courseId)) {
             this.enrolledCourseIds.add(courseId);
         }
     }
 
-    /**
-     * Removes a course ID from the student's enrolled courses list
-     * @param courseId The ID of the course to un-enroll from
-     * @return true if the course was successfully un-enrolled, false otherwise
-     */
+    // Unenroll from a course
     public boolean unenrollFromCourse(String courseId) {
         return this.enrolledCourseIds.remove(courseId);
     }
 
-    /**
-     * Adds an attendance record ID to the student's attendance history
-     * @param attendanceId The ID of the attendance record to add
-     */
+    // Add an attendance record
     public void addAttendanceRecord(String attendanceId) {
         if (!this.attendanceRecordIds.contains(attendanceId)) {
             this.attendanceRecordIds.add(attendanceId);
@@ -115,8 +101,6 @@ public class Student extends User {
 
     @Override
     public void accessDashboard() {
-        // Student-specific dashboard logic would be implemented here
-        // For now, this is a placeholder
-        System.out.println("Accessing Student Dashboard");
+        // Student-specific dashboard logic
     }
 }

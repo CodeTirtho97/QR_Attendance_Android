@@ -16,10 +16,6 @@ import com.example.qrattendance.data.repository.AuthRepository;
 import com.example.qrattendance.ui.auth.LoginActivity;
 import com.example.qrattendance.util.SessionManager;
 
-/**
- * AdminDashboardActivity serves as the main screen for administrator users.
- * It provides access to user management, system monitoring, and configuration.
- */
 public class AdminDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
@@ -40,9 +36,6 @@ public class AdminDashboardActivity extends AppCompatActivity {
         setupUserInfo();
     }
 
-    /**
-     * Initialize UI components
-     */
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeAdmin);
 
@@ -53,9 +46,6 @@ public class AdminDashboardActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Set up user info in the dashboard
-     */
     private void setupUserInfo() {
         Admin admin = (Admin) sessionManager.getUserData();
         if (admin != null) {
@@ -79,9 +69,6 @@ public class AdminDashboardActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Logout the current user and redirect to login screen
-     */
     private void logout() {
         authRepository.logout();
         sessionManager.clearSession();

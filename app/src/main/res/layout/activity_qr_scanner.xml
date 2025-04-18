@@ -7,20 +7,11 @@
     tools:context=".ui.student.QRScannerActivity">
 
     <!-- Camera Preview for QR Scanning -->
-    <SurfaceView
-        android:id="@+id/surfaceView"
+    <com.journeyapps.barcodescanner.DecoratedBarcodeView
+        android:id="@+id/barcodeView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Scanning overlay -->
-    <View
-        android:layout_width="250dp"
-        android:layout_height="250dp"
-        android:background="@drawable/scanner_overlay"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent"
+        app:zxing_scanner_layout="@layout/custom_scanner_layout"/>
 
     <!-- Scan instruction text -->
     <TextView
@@ -92,8 +83,8 @@
                     android:layout_width="80dp"
                     android:layout_height="80dp"
                     android:src="@drawable/ic_success"
-                    android:tint="@color/accent_green"
-                    android:contentDescription="Success icon" />
+                    android:contentDescription="Success icon"
+                    app:tint="@color/accent_green" />
 
                 <TextView
                     android:layout_width="wrap_content"

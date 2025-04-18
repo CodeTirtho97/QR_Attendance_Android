@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -53,8 +52,8 @@
                         android:background="@drawable/circle_background"
                         android:padding="8dp"
                         android:src="@drawable/ic_instructor"
-                        android:tint="@color/purple_700"
-                        android:contentDescription="Instructor icon" />
+                        android:contentDescription="Instructor icon"
+                        app:tint="@color/purple_700" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -77,127 +76,6 @@
                             android:layout_marginTop="4dp"
                             android:text="ID: INS123"
                             android:textColor="@color/grey_600" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Today's Classes Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Today's Classes"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="@color/grey_400" />
-
-                    <!-- For simplicity, static classes are shown -->
-                    <!-- In a real app, this would be a RecyclerView with dynamic data -->
-
-                    <!-- Class 1 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="8dp">
-
-                        <TextView
-                            android:layout_width="70dp"
-                            android:layout_height="wrap_content"
-                            android:text="10:00 AM"
-                            android:textColor="@color/purple_700"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Software Design &amp; Architecture"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Room 304, Block A"
-                                android:textColor="@color/grey_600"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/btnGenerateQr1"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="QR"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-
-                    <!-- Class 2 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="8dp">
-
-                        <TextView
-                            android:layout_width="70dp"
-                            android:layout_height="wrap_content"
-                            android:text="2:00 PM"
-                            android:textColor="@color/purple_700"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Mobile Application Development"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Lab 201, IT Building"
-                                android:textColor="@color/grey_600"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/btnGenerateQr2"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="QR"
-                            android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -253,7 +131,8 @@
                                     android:layout_height="48dp"
                                     android:src="@drawable/ic_qr_code"
                                     android:tint="@color/purple_700"
-                                    android:contentDescription="Generate QR code icon" />
+                                    android:contentDescription="Generate QR code icon"
+                                    tools:ignore="UseAppTint" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -288,7 +167,7 @@
                                     android:layout_width="48dp"
                                     android:layout_height="48dp"
                                     android:src="@drawable/ic_view_attendance"
-                                    android:tint="@color/purple_700"
+                                    app:tint="@color/purple_700"
                                     android:contentDescription="View attendance icon" />
 
                                 <TextView
@@ -324,7 +203,7 @@
                                     android:layout_width="48dp"
                                     android:layout_height="48dp"
                                     android:src="@drawable/ic_course"
-                                    android:tint="@color/purple_700"
+                                    app:tint="@color/purple_700"
                                     android:contentDescription="Manage courses icon" />
 
                                 <TextView
@@ -360,8 +239,8 @@
                                     android:layout_width="48dp"
                                     android:layout_height="48dp"
                                     android:src="@drawable/ic_report"
-                                    android:tint="@color/purple_700"
-                                    android:contentDescription="Reports icon" />
+                                    android:contentDescription="Reports icon"
+                                    app:tint="@color/purple_700" />
 
                                 <TextView
                                     android:layout_width="wrap_content"

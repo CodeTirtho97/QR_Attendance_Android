@@ -1,6 +1,5 @@
 package com.example.qrattendance.data.repository;
 
-import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -9,7 +8,6 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.qrattendance.data.model.Admin;
 import com.example.qrattendance.data.model.Instructor;
-import com.example.qrattendance.data.model.ModelUtils;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.model.User;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -24,6 +22,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -197,7 +196,41 @@ public class AuthRepository {
      * @param user The user object to save
      */
     private void saveUserToFirestore(User user) {
-        Map<String, Object> userMap = ModelUtils.userToMap(user);
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("userId", user.getUserId());
+        userMap.put("email", user.getEmail());
+        userMap.put("name", user.getName());
+        userMap.put("phoneNumber", user.getPhoneNumber());
+        userMap.put("profileImageUrl", user.getProfileImageUrl());
+        userMap.put("createdAt", user.getCreatedAt());
+        userMap.put("lastLoginAt", user.getLastLoginAt());
+        userMap.put("role", user.getRole().name());
+
+        // Add type-specific properties
+        if (user instanceof Student) {
+            Student student = (Student) user;
+            userMap.put("userType", "STUDENT");
+            userMap.put("rollNumber", student.getRollNumber());
+            userMap.put("department", student.getDepartment());
+            userMap.put("semester", student.getSemester());
+            userMap.put("batch", student.getBatch());
+            userMap.put("enrolledCourseIds", student.getEnrolledCourseIds());
+            userMap.put("attendanceRecordIds", student.getAttendanceRecordIds());
+        } else if (user instanceof Instructor) {
+            Instructor instructor = (Instructor) user;
+            userMap.put("userType", "INSTRUCTOR");
+            userMap.put("employeeId", instructor.getEmployeeId());
+            userMap.put("department", instructor.getDepartment());
+            userMap.put("designation", instructor.getDesignation());
+            userMap.put("coursesIds", instructor.getCoursesIds());
+            userMap.put("generatedQRCodeIds", instructor.getGeneratedQRCodeIds());
+        } else if (user instanceof Admin) {
+            Admin admin = (Admin) user;
+            userMap.put("userType", "ADMIN");
+            userMap.put("adminId", admin.getAdminId());
+            userMap.put("position", admin.getPosition());
+            userMap.put("privilegeLevel", admin.getPrivilegeLevel().name());
+        }
 
         firestore.collection(USERS_COLLECTION).document(user.getUserId())
                 .set(userMap)
@@ -260,9 +293,51 @@ public class AuthRepository {
                 .addOnSuccessListener(documentSnapshot -> {
                     isLoading.setValue(false);
                     if (documentSnapshot.exists()) {
-                        User user = ModelUtils.documentToUser(documentSnapshot);
-                        currentUser.setValue(user);
-                        Log.d(TAG, "User details fetched successfully");
+                        // Convert document to appropriate User subtype
+                        String userType = documentSnapshot.getString("userType");
+                        User user = null;
+
+                        if ("STUDENT".equals(userType)) {
+                            Student student = new Student();
+                            student.setRollNumber(documentSnapshot.getString("rollNumber"));
+                            student.setDepartment(documentSnapshot.getString("department"));
+                            student.setSemester(documentSnapshot.getString("semester"));
+                            student.setBatch(documentSnapshot.getString("batch"));
+                            user = student;
+                        } else if ("INSTRUCTOR".equals(userType)) {
+                            Instructor instructor = new Instructor();
+                            instructor.setEmployeeId(documentSnapshot.getString("employeeId"));
+                            instructor.setDepartment(documentSnapshot.getString("department"));
+                            instructor.setDesignation(documentSnapshot.getString("designation"));
+                            user = instructor;
+                        } else if ("ADMIN".equals(userType)) {
+                            Admin admin = new Admin();
+                            admin.setAdminId(documentSnapshot.getString("adminId"));
+                            admin.setPosition(documentSnapshot.getString("position"));
+                            if (documentSnapshot.getString("privilegeLevel") != null) {
+                                admin.setPrivilegeLevel(Admin.AdminPrivilegeLevel.valueOf(
+                                        documentSnapshot.getString("privilegeLevel")));
+                            }
+                            user = admin;
+                        }
+
+                        if (user != null) {
+                            // Set common fields
+                            user.setUserId(documentSnapshot.getString("userId"));
+                            user.setEmail(documentSnapshot.getString("email"));
+                            user.setName(documentSnapshot.getString("name"));
+                            user.setPhoneNumber(documentSnapshot.getString("phoneNumber"));
+                            user.setProfileImageUrl(documentSnapshot.getString("profileImageUrl"));
+                            user.setCreatedAt(documentSnapshot.getDate("createdAt"));
+                            user.setLastLoginAt(documentSnapshot.getDate("lastLoginAt"));
+                            if (documentSnapshot.getString("role") != null) {
+                                user.setRole(User.UserRole.valueOf(documentSnapshot.getString("role")));
+                            }
+                            currentUser.setValue(user);
+                        } else {
+                            authError.setValue("Error fetching user data: Invalid user type");
+                            logout();
+                        }
                     } else {
                         authError.setValue("User data not found. Please contact support.");
                         Log.e(TAG, "User document does not exist for ID: " + userId);

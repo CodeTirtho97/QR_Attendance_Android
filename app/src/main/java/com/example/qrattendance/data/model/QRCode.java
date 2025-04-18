@@ -2,10 +2,6 @@ package com.example.qrattendance.data.model;
 
 import java.util.Date;
 
-/**
- * QRCode class representing a QR code generated for attendance tracking.
- * Each QR code is linked to a specific session and contains encoded attendance data.
- */
 public class QRCode {
     private String qrCodeId;
     private String sessionId;
@@ -17,9 +13,6 @@ public class QRCode {
     private int scanCount; // Number of times this QR code has been scanned
     private QRCodeType type;
 
-    /**
-     * Enum representing the different types of QR codes
-     */
     public enum QRCodeType {
         SESSION_ATTENDANCE,
         COURSE_ENROLLMENT,
@@ -34,7 +27,7 @@ public class QRCode {
         this.type = QRCodeType.SESSION_ATTENDANCE;
     }
 
-    // Parameterized constructor
+    // Constructor with parameters
     public QRCode(String qrCodeId, String sessionId, String content, Date expiresAt, QRCodeType type) {
         this.qrCodeId = qrCodeId;
         this.sessionId = sessionId;
@@ -119,18 +112,12 @@ public class QRCode {
         this.type = type;
     }
 
-    /**
-     * Increments the scan count for this QR code
-     */
+    // Increment scan count
     public void incrementScanCount() {
         this.scanCount++;
     }
 
-    /**
-     * Checks if the QR code is still valid (not expired and active)
-     *
-     * @return true if the QR code is valid, false otherwise
-     */
+    // Check if QR code is valid (not expired and active)
     public boolean isValid() {
         if (!isActive) {
             return false;
@@ -140,21 +127,14 @@ public class QRCode {
         return now.before(expiresAt);
     }
 
-    /**
-     * Deactivates this QR code (e.g., after the session has ended)
-     */
+    // Deactivate the QR code
     public void deactivate() {
         this.isActive = false;
     }
 
-    /**
-     * Extends the expiration time of this QR code
-     *
-     * @param additionalMinutes Number of minutes to extend the expiration time by
-     */
+    // Extend expiration time
     public void extendExpiration(int additionalMinutes) {
         if (expiresAt != null) {
-            // Convert minutes to milliseconds and add to current expiration time
             long additionalMillis = additionalMinutes * 60 * 1000L;
             expiresAt = new Date(expiresAt.getTime() + additionalMillis);
         }

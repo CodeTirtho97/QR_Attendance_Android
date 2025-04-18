@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
 
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Admin;
@@ -28,10 +27,6 @@ import com.example.qrattendance.util.SessionManager;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-/**
- * LoginActivity handles user authentication and redirects to the appropriate dashboard
- * based on user role after successful login.
- */
 public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
@@ -66,9 +61,6 @@ public class LoginActivity extends AppCompatActivity {
         observeAuthState();
     }
 
-    /**
-     * Initialize all UI components
-     */
     private void initViews() {
         tilEmail = findViewById(R.id.tilEmail);
         tilPassword = findViewById(R.id.tilPassword);
@@ -80,13 +72,9 @@ public class LoginActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
     }
 
-    /**
-     * Setup click listeners for buttons and text views
-     */
     private void setupListeners() {
         // Login button click
         btnLogin.setOnClickListener(v -> {
-            // Validate inputs before attempting login
             if (validateInputs()) {
                 String email = etEmail.getText().toString().trim();
                 String password = etPassword.getText().toString().trim();
@@ -96,22 +84,17 @@ public class LoginActivity extends AppCompatActivity {
 
         // Forgot password click
         tvForgotPassword.setOnClickListener(v -> {
-            // Navigate to forgot password screen
             Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
             startActivity(intent);
         });
 
         // Register click
         tvRegister.setOnClickListener(v -> {
-            // Navigate to registration screen
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
     }
 
-    /**
-     * Observe changes in authentication state
-     */
     private void observeAuthState() {
         // Observe current user
         authRepository.getCurrentUser().observe(this, user -> {
@@ -142,10 +125,6 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Validate email and password inputs
-     * @return true if inputs are valid, false otherwise
-     */
     private boolean validateInputs() {
         boolean isValid = true;
 
@@ -176,10 +155,6 @@ public class LoginActivity extends AppCompatActivity {
         return isValid;
     }
 
-    /**
-     * Show error dialog with the given message
-     * @param message Error message to display
-     */
     private void showErrorDialog(String message) {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.error)
@@ -188,10 +163,6 @@ public class LoginActivity extends AppCompatActivity {
                 .show();
     }
 
-    /**
-     * Redirect to the appropriate dashboard based on user role
-     * @param user The authenticated user
-     */
     private void redirectBasedOnUserRole(User user) {
         if (user == null) {
             Log.e(TAG, "Cannot redirect: User is null");

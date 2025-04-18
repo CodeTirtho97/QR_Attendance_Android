@@ -2,10 +2,6 @@ package com.example.qrattendance.data.model;
 
 import java.util.Date;
 
-/**
- * Base User class that represents common attributes and behaviors for all users in the system.
- * This abstract class serves as the parent for Student, Instructor, and Admin classes.
- */
 public abstract class User {
     private String userId;
     private String email;
@@ -16,9 +12,6 @@ public abstract class User {
     private Date lastLoginAt;
     private UserRole role;
 
-    /**
-     * Enum representing the possible roles a user can have in the system
-     */
     public enum UserRole {
         STUDENT,
         INSTRUCTOR,
@@ -30,7 +23,7 @@ public abstract class User {
         this.createdAt = new Date();
     }
 
-    // Parameterized constructor
+    // Constructor with parameters
     public User(String userId, String email, String name, String phoneNumber, UserRole role) {
         this.userId = userId;
         this.email = email;
@@ -40,7 +33,7 @@ public abstract class User {
         this.createdAt = new Date();
     }
 
-    // Getters and Setters
+    // Getters and setters
     public String getUserId() {
         return userId;
     }
@@ -105,9 +98,6 @@ public abstract class User {
         this.role = role;
     }
 
-    /**
-     * Abstract method that must be implemented by derived classes.
-     * This ensures each user type has a specific dashboard access.
-     */
+    // Abstract method to ensure each user type has specific dashboard behavior
     public abstract void accessDashboard();
 }

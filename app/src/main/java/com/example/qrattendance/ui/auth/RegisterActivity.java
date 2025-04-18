@@ -331,8 +331,7 @@ public class RegisterActivity extends AppCompatActivity {
             userData.put("privilegeLevel", privLevel);
         }
 
-        // Register user
-        User.UserRole finalRole = role;
+        // Check if user with this email already exists
         authRepository.checkIfUserExists(email, userExists -> {
             if (userExists) {
                 runOnUiThread(() -> {
@@ -341,7 +340,8 @@ public class RegisterActivity extends AppCompatActivity {
                     tilEmail.setError("Email already in use");
                 });
             } else {
-                authRepository.registerUser(email, password, finalRole, userData);
+                // Register user
+                authRepository.registerUser(email, password, role, userData);
 
                 // Observe results
                 authRepository.getCurrentUser().observe(this, user -> {

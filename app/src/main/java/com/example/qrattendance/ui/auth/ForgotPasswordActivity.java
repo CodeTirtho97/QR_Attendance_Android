@@ -134,7 +134,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
     private void showSuccessDialog() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.success)
-                .setMessage(R.string.send_reset_link)
+                .setMessage(R.string.reset_email_sent)
                 .setPositiveButton(R.string.ok, (dialog, which) -> finish())
                 .setCancelable(false)
                 .show();
