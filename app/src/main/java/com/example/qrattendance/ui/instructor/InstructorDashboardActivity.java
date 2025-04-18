@@ -39,11 +39,41 @@ public class InstructorDashboardActivity extends AppCompatActivity {
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeInstructor);
 
+        // Find all clickable elements
+        findViewById(R.id.cardGenerateQr).setOnClickListener(v -> generateQRCode());
+        findViewById(R.id.cardViewAttendance).setOnClickListener(v -> viewAttendance());
+        findViewById(R.id.cardManageCourses).setOnClickListener(v -> manageCourses());
+        findViewById(R.id.cardReports).setOnClickListener(v -> viewReports());
+
+        // FAB click listener
+        findViewById(R.id.fabGenerateQr).setOnClickListener(v -> generateQRCode());
+
         // Set up toolbar
         setSupportActionBar(findViewById(R.id.toolbar));
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Instructor Dashboard");
         }
+    }
+
+    // Add these handler methods
+    private void generateQRCode() {
+        Intent intent = new Intent(this, GenerateQRActivity.class);
+        startActivity(intent);
+    }
+
+    private void viewAttendance() {
+        // TODO: Open View Attendance activity
+        Toast.makeText(this, "View Attendance feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void manageCourses() {
+        // TODO: Open Manage Courses activity
+        Toast.makeText(this, "Manage Courses feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewReports() {
+        // TODO: Open Reports activity
+        Toast.makeText(this, "Reports feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     private void setupUserInfo() {

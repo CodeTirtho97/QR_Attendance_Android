@@ -39,11 +39,49 @@ public class AdminDashboardActivity extends AppCompatActivity {
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeAdmin);
 
+        // Find all clickable elements
+        findViewById(R.id.cardManageUsers).setOnClickListener(v -> manageUsers());
+        findViewById(R.id.cardManageCourses).setOnClickListener(v -> manageCourses());
+        findViewById(R.id.cardSystemSettings).setOnClickListener(v -> systemSettings());
+        findViewById(R.id.cardReports).setOnClickListener(v -> viewReports());
+        findViewById(R.id.cardLogs).setOnClickListener(v -> viewLogs());
+        findViewById(R.id.cardBackup).setOnClickListener(v -> backupRestore());
+
         // Set up toolbar
         setSupportActionBar(findViewById(R.id.toolbar));
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Admin Dashboard");
         }
+    }
+
+    private void manageUsers() {
+        // TODO: Open Manage Users activity
+        Toast.makeText(this, "Manage Users feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void manageCourses() {
+        // TODO: Open Manage Courses activity
+        Toast.makeText(this, "Manage Courses feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void systemSettings() {
+        // TODO: Open System Settings activity
+        Toast.makeText(this, "System Settings feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewReports() {
+        // TODO: Open Reports activity
+        Toast.makeText(this, "Reports feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewLogs() {
+        // TODO: Open Logs activity
+        Toast.makeText(this, "Logs feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void backupRestore() {
+        // TODO: Open Backup & Restore activity
+        Toast.makeText(this, "Backup & Restore feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     private void setupUserInfo() {

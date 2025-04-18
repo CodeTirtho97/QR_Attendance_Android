@@ -39,11 +39,41 @@ public class StudentDashboardActivity extends AppCompatActivity {
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeStudent);
 
+        // Find all clickable elements
+        findViewById(R.id.cardScanQr).setOnClickListener(v -> openQRScanner());
+        findViewById(R.id.cardMyAttendance).setOnClickListener(v -> viewMyAttendance());
+        findViewById(R.id.cardMyCourses).setOnClickListener(v -> viewMyCourses());
+        findViewById(R.id.cardProfile).setOnClickListener(v -> viewProfile());
+
+        // FAB click listener
+        findViewById(R.id.fabScanQr).setOnClickListener(v -> openQRScanner());
+
         // Set up toolbar
         setSupportActionBar(findViewById(R.id.toolbar));
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Student Dashboard");
         }
+    }
+
+    // Add these handler methods
+    private void openQRScanner() {
+        Intent intent = new Intent(this, QRScannerActivity.class);
+        startActivity(intent);
+    }
+
+    private void viewMyAttendance() {
+        // TODO: Open Attendance view activity
+        Toast.makeText(this, "View Attendance feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewMyCourses() {
+        // TODO: Open My Courses activity
+        Toast.makeText(this, "My Courses feature coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewProfile() {
+        // TODO: Open Profile activity
+        Toast.makeText(this, "Profile feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     private void setupUserInfo() {

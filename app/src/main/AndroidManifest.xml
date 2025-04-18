@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -59,6 +63,19 @@
         <!-- Admin Activities -->
         <activity
             android:name=".ui.admin.AdminDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
+        <!-- Student QR Scanner Activity -->
+        <activity
+            android:name=".ui.student.QRScannerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
+        <!-- Instructor QR Generator Activity -->
+        <!-- Instructor QR Generator Activity -->
+        <activity
+            android:name=".ui.instructor.GenerateQRActivity"
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
