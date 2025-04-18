@@ -107,10 +107,12 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        // Observe authentication errors
+        // Observe authentication errors - FIX HERE
         authRepository.getAuthError().observe(this, errorMsg -> {
             if (errorMsg != null && !errorMsg.isEmpty()) {
                 showErrorDialog(errorMsg);
+                // Clear the error after showing it
+                authRepository.clearError();  // You'll need to add this method
             }
         });
 
@@ -156,10 +158,13 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void showErrorDialog(String message) {
+        if (isFinishing()) return;  // Don't show dialog if activity is finishing
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.error)
                 .setMessage(message)
                 .setPositiveButton(R.string.ok, null)
+                .setCancelable(true)
                 .show();
     }
 

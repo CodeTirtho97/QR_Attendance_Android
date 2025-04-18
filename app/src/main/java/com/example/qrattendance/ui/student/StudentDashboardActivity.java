@@ -71,13 +71,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
     private void logout() {
         authRepository.logout();
-        sessionManager.clearSession();
-
-        // Redirect to login screen
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        SessionManager.getInstance(this).logout(this);
 
         Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
     }

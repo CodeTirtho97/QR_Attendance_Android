@@ -356,11 +356,16 @@ public class RegisterActivity extends AppCompatActivity {
                     if (error != null && !error.isEmpty()) {
                         progressBar.setVisibility(View.GONE);
                         btnRegister.setEnabled(true);
+
                         new AlertDialog.Builder(RegisterActivity.this)
                                 .setTitle(R.string.error)
                                 .setMessage(error)
                                 .setPositiveButton(R.string.ok, null)
+                                .setCancelable(true)
                                 .show();
+
+                        // Clear the error after showing
+                        authRepository.clearError();
                     }
                 });
             }

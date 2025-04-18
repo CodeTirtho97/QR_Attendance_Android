@@ -1,12 +1,14 @@
 package com.example.qrattendance.util;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 
 import com.example.qrattendance.data.model.Admin;
 import com.example.qrattendance.data.model.Instructor;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.model.User;
+import com.example.qrattendance.ui.auth.LoginActivity;
 import com.google.gson.Gson;
 
 public class SessionManager {
@@ -30,7 +32,7 @@ public class SessionManager {
     // Private constructor
     private SessionManager(Context context) {
         this.context = context;
-        sharedPreferences = context.getSharedPreferences(PREF_NAME, PRIVATE_MODE);
+        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
         gson = new Gson();
     }
@@ -98,5 +100,14 @@ public class SessionManager {
     public void clearSession() {
         editor.clear();
         editor.apply();
+    }
+
+    public void logout(Context context) {
+        clearSession();
+
+        // Create a proper intent to restart the app flow
+        Intent intent = new Intent(context, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        context.startActivity(intent);
     }
 }

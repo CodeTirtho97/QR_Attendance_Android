@@ -2,6 +2,7 @@ package com.example.qrattendance;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,14 +35,17 @@ public class MainActivity extends AppCompatActivity {
         // Initialize authentication repository
         authRepository = AuthRepository.getInstance();
 
-        // Check if user is logged in
-        if (SessionManager.getInstance(this).isLoggedIn()) {
-            // User is logged in, redirect to appropriate dashboard
-            redirectBasedOnUserRole();
-        } else {
-            // User is not logged in, redirect to login screen
-            redirectToLogin();
-        }
+        // Delay a bit to avoid black screen
+        new Handler().postDelayed(() -> {
+            // Check if user is logged in
+            if (SessionManager.getInstance(MainActivity.this).isLoggedIn()) {
+                // User is logged in, redirect to appropriate dashboard
+                redirectBasedOnUserRole();
+            } else {
+                // User is not logged in, redirect to login screen
+                redirectToLogin();
+            }
+        }, 300); // Small delay to allow UI to initialize
     }
 
     private void redirectBasedOnUserRole() {

@@ -390,4 +390,8 @@ public class AuthRepository {
                     }
                 });
     }
+
+    public void clearError() {
+        authError.setValue(null);
+    }
 }
