@@ -79,5 +79,11 @@
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
+        <!-- Course Management Activity -->
+        <activity
+            android:name=".ui.instructor.ManageCoursesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
     </application>
 </manifest>

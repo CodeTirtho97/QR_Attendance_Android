@@ -67,8 +67,8 @@ public class InstructorDashboardActivity extends AppCompatActivity {
     }
 
     private void manageCourses() {
-        // TODO: Open Manage Courses activity
-        Toast.makeText(this, "Manage Courses feature coming soon", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, ManageCoursesActivity.class);
+        startActivity(intent);
     }
 
     private void viewReports() {
