@@ -46,15 +46,16 @@
 
             <!-- Course options menu -->
             <ImageButton
-                android:id="@+id/btnCourseOptions"
+                android:id="@+id/btnDeleteCourse"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Course options"
+                android:contentDescription="Delete course"
                 android:padding="8dp"
-                android:src="@drawable/ic_settings"
+                android:src="@drawable/ic_delete"
                 app:tint="@color/grey_600"
                 tools:ignore="TouchTargetSizeCheck" />
+
         </LinearLayout>
 
         <!-- Course details -->
@@ -91,6 +92,7 @@
         <!-- Student count -->
         <TextView
             android:id="@+id/tvStudentCount"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -119,13 +121,13 @@
                 android:textSize="12sp" />
 
             <Button
-                android:id="@+id/btnManageStudents"
+                android:id="@+id/btnManageCourse"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Manage Students"
+                android:text="Edit Course"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>

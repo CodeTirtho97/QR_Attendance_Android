@@ -2,6 +2,8 @@ package com.example.qrattendance.ui.student;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,6 +24,7 @@ import com.example.qrattendance.data.model.AttendanceRecord;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AttendanceRepository;
 import com.example.qrattendance.util.SessionManager;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.zxing.ResultPoint;
 import com.journeyapps.barcodescanner.BarcodeCallback;
@@ -31,9 +34,14 @@ import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class QRScannerActivity extends AppCompatActivity {
 
@@ -88,17 +96,8 @@ public class QRScannerActivity extends AppCompatActivity {
         Button btnDebugScan = findViewById(R.id.btnDebugScan);
         if (btnDebugScan != null) {
             btnDebugScan.setOnClickListener(v -> {
-                // Get the last generated QR content from shared preferences
-                String savedQrContent = getSharedPreferences("QRAttendance", MODE_PRIVATE)
-                        .getString("lastTestQRContent", null);
-
-                if (savedQrContent != null) {
-                    Log.d("QR_SCAN_DEBUG", "Scanned content: " + savedQrContent);
-                    processScanResult(savedQrContent);
-                } else {
-                    Toast.makeText(this, "No test QR content available. Generate a QR code first.",
-                            Toast.LENGTH_LONG).show();
-                }
+                // Show dialog with list of active QR codes to test
+                showTestQRSelection();
             });
         }
 
@@ -325,5 +324,144 @@ public class QRScannerActivity extends AppCompatActivity {
             Log.e("QR_SCAN_DEBUG", "Error parsing QR content: " + e.getMessage());
             Toast.makeText(this, "Invalid QR code format: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void showTestQRSelection() {
+        // Create AlertDialog with a list of active QR codes
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select a QR code to test");
+
+        // Show loading indicator
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading QR codes...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // Fetch active QR codes from Firestore
+        FirebaseFirestore.getInstance().collection("qr_codes")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    progressDialog.dismiss();
+
+                    if (querySnapshot.isEmpty()) {
+                        Toast.makeText(this, "No QR codes found", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Create list of QR codes with session/course info
+                    List<Map<String, String>> qrInfoList = new ArrayList<>();
+
+                    // Counter for tracking async operations
+                    AtomicInteger counter = new AtomicInteger(0);
+                    int totalQrCodes = querySnapshot.size();
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String qrCodeId = doc.getId();
+                        String sessionId = doc.getString("sessionId");
+                        String courseId = doc.getString("courseId");
+                        String qrContent = doc.getString("content");
+                        boolean isActive = Boolean.TRUE.equals(doc.getBoolean("isActive"));
+
+                        Map<String, String> qrInfo = new HashMap<>();
+                        qrInfo.put("qrCodeId", qrCodeId);
+                        qrInfo.put("content", qrContent);
+                        qrInfo.put("isActive", isActive ? "Active" : "Inactive");
+
+                        // Fetch session details
+                        if (sessionId != null) {
+                            FirebaseFirestore.getInstance().collection("sessions").document(sessionId)
+                                    .get()
+                                    .addOnSuccessListener(sessionDoc -> {
+                                        String sessionTitle = sessionDoc.getString("title");
+                                        qrInfo.put("sessionTitle", sessionTitle != null ? sessionTitle : "Unknown Session");
+
+                                        // Fetch course details
+                                        if (courseId != null) {
+                                            FirebaseFirestore.getInstance().collection("courses").document(courseId)
+                                                    .get()
+                                                    .addOnSuccessListener(courseDoc -> {
+                                                        String courseName = courseDoc.getString("courseName");
+                                                        String courseCode = courseDoc.getString("courseCode");
+
+                                                        qrInfo.put("courseInfo", (courseCode != null ? courseCode : "Unknown") +
+                                                                " - " + (courseName != null ? courseName : "Course"));
+
+                                                        // Check if this is the last item to process
+                                                        if (counter.incrementAndGet() == totalQrCodes) {
+                                                            showQRSelectionDialog(builder, qrInfoList);
+                                                        }
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        qrInfo.put("courseInfo", "Error loading course");
+                                                        if (counter.incrementAndGet() == totalQrCodes) {
+                                                            showQRSelectionDialog(builder, qrInfoList);
+                                                        }
+                                                    });
+                                        } else {
+                                            qrInfo.put("courseInfo", "No Course ID");
+                                            if (counter.incrementAndGet() == totalQrCodes) {
+                                                showQRSelectionDialog(builder, qrInfoList);
+                                            }
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        qrInfo.put("sessionTitle", "Error loading session");
+                                        qrInfo.put("courseInfo", "Unknown Course");
+
+                                        if (counter.incrementAndGet() == totalQrCodes) {
+                                            showQRSelectionDialog(builder, qrInfoList);
+                                        }
+                                    });
+                        } else {
+                            qrInfo.put("sessionTitle", "No Session ID");
+                            qrInfo.put("courseInfo", "Unknown Course");
+
+                            if (counter.incrementAndGet() == totalQrCodes) {
+                                showQRSelectionDialog(builder, qrInfoList);
+                            }
+                        }
+
+                        qrInfoList.add(qrInfo);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "Error fetching QR codes: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void showQRSelectionDialog(AlertDialog.Builder builder, List<Map<String, String>> qrInfoList) {
+        // Sort the list - active QR codes first, then by course code
+        Collections.sort(qrInfoList, (a, b) -> {
+            // Active status comparison
+            int statusCompare = b.get("isActive").compareTo(a.get("isActive"));
+            if (statusCompare != 0) return statusCompare;
+
+            // Then by course code
+            return a.get("courseInfo").compareTo(b.get("courseInfo"));
+        });
+
+        // Create description strings
+        String[] qrDescriptions = new String[qrInfoList.size()];
+        for (int i = 0; i < qrInfoList.size(); i++) {
+            Map<String, String> info = qrInfoList.get(i);
+            qrDescriptions[i] = info.get("courseInfo") + "\n" +
+                    info.get("sessionTitle") + " (" + info.get("isActive") + ")";
+        }
+
+        builder.setItems(qrDescriptions, (dialog, which) -> {
+            // Process the selected QR code
+            String selectedQRContent = qrInfoList.get(which).get("content");
+            if (selectedQRContent != null) {
+                processScanResult(selectedQRContent);
+            } else {
+                Toast.makeText(QRScannerActivity.this,
+                        "Error: QR content is null", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 }

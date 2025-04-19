@@ -1,6 +1,9 @@
 package com.example.qrattendance.ui.student;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -87,6 +90,16 @@ public class StudentDashboardActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_dashboard, menu);
+
+        // Force white tint for all menu items
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            Drawable icon = item.getIcon();
+            if (icon != null) {
+                icon.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+            }
+        }
+
         return true;
     }
 

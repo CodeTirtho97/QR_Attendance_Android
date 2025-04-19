@@ -23,8 +23,8 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
     public interface CourseClickListener {
         void onCourseClick(Course course, int position);
         void onViewAttendanceClick(Course course, int position);
-        void onManageStudentsClick(Course course, int position);
-        void onOptionsClick(View view, Course course, int position);
+        void onManageCourseClick(Course course, int position);
+        void onDeleteCourseClick(Course course, int position);
     }
 
     public CourseAdapter(List<Course> courses, CourseClickListener listener) {
@@ -63,8 +63,8 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         private final TextView tvSemester;
         private final TextView tvStudentCount;
         private final Button btnViewAttendance;
-        private final Button btnManageStudents;
-        private final ImageButton btnCourseOptions;
+        private final Button btnManageCourse;
+        private final ImageButton btnDeleteCourse;
 
         public CourseViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -74,8 +74,8 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             tvSemester = itemView.findViewById(R.id.tvSemester);
             tvStudentCount = itemView.findViewById(R.id.tvStudentCount);
             btnViewAttendance = itemView.findViewById(R.id.btnViewAttendance);
-            btnManageStudents = itemView.findViewById(R.id.btnManageStudents);
-            btnCourseOptions = itemView.findViewById(R.id.btnCourseOptions);
+            btnManageCourse = itemView.findViewById(R.id.btnManageCourse);
+            btnDeleteCourse = itemView.findViewById(R.id.btnDeleteCourse);
         }
 
         public void bind(Course course, int position) {
@@ -84,6 +84,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             tvCourseName.setText(course.getCourseName());
             tvDepartment.setText(course.getDepartment());
             tvSemester.setText(course.getSemester());
+            tvStudentCount.setVisibility(View.GONE);
 
             // Set student count
             int studentCount = course.getEnrolledStudentIds() != null ?
@@ -103,15 +104,15 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
                 }
             });
 
-            btnManageStudents.setOnClickListener(v -> {
+            btnManageCourse.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onManageStudentsClick(course, position);
+                    listener.onManageCourseClick(course, position);
                 }
             });
 
-            btnCourseOptions.setOnClickListener(v -> {
+            btnDeleteCourse.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onOptionsClick(v, course, position);
+                    listener.onDeleteCourseClick(course, position);
                 }
             });
         }

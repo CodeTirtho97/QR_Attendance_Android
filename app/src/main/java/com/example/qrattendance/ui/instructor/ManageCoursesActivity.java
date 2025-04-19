@@ -230,17 +230,38 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
         });
     }
 
-    private void showEnrollStudentDialog(Course course) {
+    private void showEditCourseDialog(Course course) {
         // Inflate the dialog layout
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_enroll_student, null);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_course, null);
 
-        TextInputLayout tilStudentId = dialogView.findViewById(R.id.tilStudentId);
-        TextInputEditText etStudentId = dialogView.findViewById(R.id.etStudentId);
+        TextInputLayout tilCourseCode = dialogView.findViewById(R.id.tilCourseCode);
+        TextInputLayout tilCourseName = dialogView.findViewById(R.id.tilCourseName);
+        TextInputLayout tilDepartment = dialogView.findViewById(R.id.tilDepartment);
+        TextInputLayout tilSemester = dialogView.findViewById(R.id.tilSemester);
+        TextInputLayout tilCredits = dialogView.findViewById(R.id.tilCredits);
+        TextInputLayout tilDescription = dialogView.findViewById(R.id.tilDescription);
+
+        TextInputEditText etCourseCode = dialogView.findViewById(R.id.etCourseCode);
+        TextInputEditText etCourseName = dialogView.findViewById(R.id.etCourseName);
+        TextInputEditText etDepartment = dialogView.findViewById(R.id.etDepartment);
+        TextInputEditText etSemester = dialogView.findViewById(R.id.etSemester);
+        TextInputEditText etCredits = dialogView.findViewById(R.id.etCredits);
+        TextInputEditText etDescription = dialogView.findViewById(R.id.etDescription);
+
+        // Fill with existing course data
+        etCourseCode.setText(course.getCourseCode());
+        etCourseName.setText(course.getCourseName());
+        etDepartment.setText(course.getDepartment());
+        etSemester.setText(course.getSemester());
+        etCredits.setText(String.valueOf(course.getCredits()));
+        if (course.getDescription() != null) {
+            etDescription.setText(course.getDescription());
+        }
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle("Enroll Student")
+                .setTitle("Edit Course")
                 .setView(dialogView)
-                .setPositiveButton("Enroll", null)
+                .setPositiveButton("Update", null) // We'll set this later to avoid auto-dismiss
                 .setNegativeButton("Cancel", null)
                 .create();
 
@@ -248,31 +269,94 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
 
         // Set positive button click listener after showing dialog to prevent auto-dismiss
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String studentId = etStudentId.getText().toString().trim();
+            // Validate inputs
+            boolean isValid = true;
 
-            if (studentId.isEmpty()) {
-                tilStudentId.setError("Student ID is required");
-                return;
+            String courseCode = etCourseCode.getText().toString().trim();
+            if (courseCode.isEmpty()) {
+                tilCourseCode.setError("Course code is required");
+                isValid = false;
+            } else {
+                tilCourseCode.setError(null);
             }
 
-            // Enroll student in the course
-            courseRepository.enrollStudent(course.getCourseId(), studentId, new CourseRepository.OnCompleteListener() {
-                @Override
-                public void onSuccess(String id) {
-                    Toast.makeText(ManageCoursesActivity.this,
-                            "Student enrolled successfully", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
+            String courseName = etCourseName.getText().toString().trim();
+            if (courseName.isEmpty()) {
+                tilCourseName.setError("Course name is required");
+                isValid = false;
+            } else {
+                tilCourseName.setError(null);
+            }
 
-                    // Refresh course list to show updated student count
-                    courseRepository.fetchCoursesByInstructor(currentInstructor.getUserId());
-                }
+            String department = etDepartment.getText().toString().trim();
+            if (department.isEmpty()) {
+                tilDepartment.setError("Department is required");
+                isValid = false;
+            } else {
+                tilDepartment.setError(null);
+            }
 
-                @Override
-                public void onFailure(String errorMessage) {
-                    Toast.makeText(ManageCoursesActivity.this,
-                            "Failed to enroll student: " + errorMessage, Toast.LENGTH_SHORT).show();
+            String semester = etSemester.getText().toString().trim();
+            if (semester.isEmpty()) {
+                tilSemester.setError("Semester is required");
+                isValid = false;
+            } else {
+                tilSemester.setError(null);
+            }
+
+            String creditsStr = etCredits.getText().toString().trim();
+            int credits = 0;
+            if (creditsStr.isEmpty()) {
+                tilCredits.setError("Credits are required");
+                isValid = false;
+            } else {
+                try {
+                    credits = Integer.parseInt(creditsStr);
+                    if (credits <= 0) {
+                        tilCredits.setError("Credits must be a positive number");
+                        isValid = false;
+                    } else {
+                        tilCredits.setError(null);
+                    }
+                } catch (NumberFormatException e) {
+                    tilCredits.setError("Credits must be a number");
+                    isValid = false;
                 }
-            });
+            }
+
+            String description = etDescription.getText().toString().trim();
+
+            // If all inputs are valid, update the course
+            if (isValid) {
+                // Update course object with new values
+                course.setCourseCode(courseCode);
+                course.setCourseName(courseName);
+                course.setDepartment(department);
+                course.setSemester(semester);
+                course.setCredits(credits);
+                course.setDescription(description);
+
+                // Update course in Firebase
+                courseRepository.updateCourse(course, new CourseRepository.OnCompleteListener() {
+                    @Override
+                    public void onSuccess(String id) {
+                        Toast.makeText(ManageCoursesActivity.this,
+                                "Course updated successfully", Toast.LENGTH_SHORT).show();
+
+                        // Dismiss dialog
+                        dialog.dismiss();
+
+                        // Refresh course list to show updated data
+                        courseRepository.fetchCoursesByInstructor(currentInstructor.getUserId());
+                    }
+
+                    @Override
+                    public void onFailure(String errorMessage) {
+                        Toast.makeText(ManageCoursesActivity.this,
+                                "Failed to update course: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
         });
     }
 
@@ -289,27 +373,13 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
     }
 
     @Override
-    public void onManageStudentsClick(Course course, int position) {
-        showEnrollStudentDialog(course);
+    public void onManageCourseClick(Course course, int position) {
+        showEditCourseDialog(course);
     }
 
     @Override
-    public void onOptionsClick(View view, Course course, int position) {
-        PopupMenu popup = new PopupMenu(this, view);
-        popup.inflate(R.menu.menu_course_options);
-        popup.setOnMenuItemClickListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.action_edit) {
-                // TODO: Implement edit course
-                Toast.makeText(this, "Edit course coming soon", Toast.LENGTH_SHORT).show();
-                return true;
-            } else if (id == R.id.action_delete) {
-                showDeleteConfirmationDialog(course);
-                return true;
-            }
-            return false;
-        });
-        popup.show();
+    public void onDeleteCourseClick(Course course, int position) {
+        showDeleteConfirmationDialog(course);
     }
 
     private void showDeleteConfirmationDialog(Course course) {
