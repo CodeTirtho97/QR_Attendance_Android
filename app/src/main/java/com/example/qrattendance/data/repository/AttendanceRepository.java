@@ -14,6 +14,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.Transaction;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +27,7 @@ public class AttendanceRepository {
     private static final String TAG = "AttendanceRepository";
     private static final String ATTENDANCE_COLLECTION = "attendance_records";
     private static final String SESSIONS_COLLECTION = "sessions";
-    private static final String STUDENTS_COLLECTION = "users";
+    private static final String USERS_COLLECTION = "users";
     private static final String QRCODES_COLLECTION = "qr_codes";
     private static final String COURSES_COLLECTION = "courses";
 
@@ -173,6 +175,9 @@ public class AttendanceRepository {
 
             String qrCodeId = qrData.qrCodeId;
             String sessionId = qrData.sessionId;
+            String courseId = qrData.courseId;
+
+            Log.d(TAG, "Looking for QR code with ID: " + qrCodeId);
 
             // 1. First check if attendance has already been marked
             firestore.collection(ATTENDANCE_COLLECTION)
@@ -231,36 +236,39 @@ public class AttendanceRepository {
                                                         return;
                                                     }
 
-                                                    String courseId = session.getCourseId();
+                                                    // If courseId is not in the QR code, get it from the session
+                                                    String finalCourseId = (courseId != null) ? courseId : session.getCourseId();
 
-                                                    // 4. Create new attendance record
-                                                    AttendanceRecord record = new AttendanceRecord(sessionId, courseId, studentId, qrCodeId);
+                                                    // 4. Create new attendance record with a specific ID
+                                                    String attendanceId = firestore.collection(ATTENDANCE_COLLECTION).document().getId();
+                                                    AttendanceRecord record = new AttendanceRecord(sessionId, finalCourseId, studentId, qrCodeId);
+                                                    record.setRecordId(attendanceId);
                                                     record.setLocation(location);
+                                                    record.setTimestamp(new Date());
                                                     record.checkLateStatus(session.getStartTime(), session.getLateThresholdMinutes());
 
                                                     Map<String, Object> recordMap = attendanceRecordToMap(record);
 
                                                     // 5. Add attendance record to Firestore
                                                     firestore.collection(ATTENDANCE_COLLECTION)
-                                                            .add(recordMap)
-                                                            .addOnSuccessListener(newRecordDoc -> {
-                                                                String recordId = newRecordDoc.getId();
-
-                                                                // Update attendance count in QR code
+                                                            .document(attendanceId)
+                                                            .set(recordMap)
+                                                            .addOnSuccessListener(aVoid -> {
+                                                                // 6. Update attendance count in QR code
                                                                 firestore.collection(QRCODES_COLLECTION).document(qrCodeId)
                                                                         .update("scanCount", qrCode.getScanCount() + 1);
 
-                                                                // Update session with new attendance record
+                                                                // 7. Update session with new attendance record
                                                                 List<String> attendanceRecords = session.getAttendanceRecordIds();
                                                                 if (attendanceRecords == null) {
                                                                     attendanceRecords = new ArrayList<>();
                                                                 }
-                                                                attendanceRecords.add(recordId);
+                                                                attendanceRecords.add(attendanceId);
                                                                 firestore.collection(SESSIONS_COLLECTION).document(sessionId)
                                                                         .update("attendanceRecordIds", attendanceRecords);
 
-                                                                // Update student with attendance record
-                                                                firestore.collection(STUDENTS_COLLECTION).document(studentId)
+                                                                // 8. Update student with attendance record
+                                                                firestore.collection(USERS_COLLECTION).document(studentId)
                                                                         .get()
                                                                         .addOnSuccessListener(studentDoc -> {
                                                                             if (studentDoc.exists()) {
@@ -268,8 +276,8 @@ public class AttendanceRepository {
                                                                                 if (studentAttendanceRecords == null) {
                                                                                     studentAttendanceRecords = new ArrayList<>();
                                                                                 }
-                                                                                studentAttendanceRecords.add(recordId);
-                                                                                firestore.collection(STUDENTS_COLLECTION).document(studentId)
+                                                                                studentAttendanceRecords.add(attendanceId);
+                                                                                firestore.collection(USERS_COLLECTION).document(studentId)
                                                                                         .update("attendanceRecordIds", studentAttendanceRecords);
                                                                             }
 
@@ -305,6 +313,7 @@ public class AttendanceRepository {
             isLoading.setValue(false);
             listener.onFailure("Error processing request: " + e.getMessage());
         }
+
     }
 
     // Create new session
@@ -362,48 +371,67 @@ public class AttendanceRepository {
         isLoading.setValue(true);
 
         try {
-            // 1. Create QR code object
+            // 1. Create QR code object with complete data
             QRCode qrCode = new QRCode();
             qrCode.setSessionId(session.getSessionId());
+            qrCode.setCourseId(session.getCourseId());  // Set course ID
             qrCode.setExpiresAt(expiryDate);
+            qrCode.setInstructorId(session.getInstructorId());  // Set instructor ID
             qrCode.setType(QRCode.QRCodeType.SESSION_ATTENDANCE);
+            qrCode.setActive(true);
+            qrCode.setGeneratedAt(new Date());
 
-            // Create content that will be encoded in the QR
+            // Generate a unique ID for the QR code
+            String qrCodeId = firestore.collection(QRCODES_COLLECTION).document().getId();
+            qrCode.setQrCodeId(qrCodeId);
+
+            Log.d(TAG, "Generated QR code with ID: " + qrCodeId);
+
+            // Create content with the QR code ID included
             String content = createQRCodeContent(qrCode);
             qrCode.setContent(content);
 
             Map<String, Object> qrCodeMap = qrCodeToMap(qrCode);
 
-            // 2. Save QR code to Firestore
+            // 2. Save QR code to Firestore with the pre-generated ID
             firestore.collection(QRCODES_COLLECTION)
-                    .add(qrCodeMap)
-                    .addOnSuccessListener(documentReference -> {
-                        String qrCodeId = documentReference.getId();
-                        qrCode.setQrCodeId(qrCodeId);
+                    .document(qrCodeId)
+                    .set(qrCodeMap)
+                    .addOnSuccessListener(aVoid -> {
+                        // 3. Update session with QR code ID
+                        firestore.collection(SESSIONS_COLLECTION)
+                                .document(session.getSessionId())
+                                .update("qrCodeId", qrCodeId)
+                                .addOnSuccessListener(aVoid2 -> {
+                                    // 4. Add QR code ID to instructor's list of generated QR codes
+                                    firestore.collection(USERS_COLLECTION)
+                                            .document(session.getInstructorId())
+                                            .get()
+                                            .addOnSuccessListener(instructorDoc -> {
+                                                if (instructorDoc.exists()) {
+                                                    List<String> generatedQRs = (List<String>) instructorDoc.get("generatedQRCodeIds");
+                                                    if (generatedQRs == null) {
+                                                        generatedQRs = new ArrayList<>();
+                                                    }
+                                                    if (!generatedQRs.contains(qrCodeId)) {
+                                                        generatedQRs.add(qrCodeId);
+                                                        firestore.collection(USERS_COLLECTION)
+                                                                .document(session.getInstructorId())
+                                                                .update("generatedQRCodeIds", generatedQRs);
+                                                    }
+                                                }
 
-                        // Update the content with the QR code ID (now that we have it)
-                        String updatedContent = createQRCodeContent(qrCode);
-
-                        firestore.collection(QRCODES_COLLECTION)
-                                .document(qrCodeId)
-                                .update("content", updatedContent, "qrCodeId", qrCodeId)
-                                .addOnSuccessListener(aVoid -> {
-                                    // 3. Update session with QR code ID
-                                    firestore.collection(SESSIONS_COLLECTION)
-                                            .document(session.getSessionId())
-                                            .update("qrCodeId", qrCodeId)
-                                            .addOnSuccessListener(aVoid2 -> {
                                                 isLoading.setValue(false);
-                                                listener.onSuccess(qrCodeId, updatedContent);
+                                                listener.onSuccess(qrCodeId, content);
                                             })
                                             .addOnFailureListener(e -> {
-                                                errorMessage.setValue("Failed to update session: " + e.getMessage());
+                                                // Still consider successful even if instructor update fails
                                                 isLoading.setValue(false);
-                                                listener.onFailure(e.getMessage());
+                                                listener.onSuccess(qrCodeId, content);
                                             });
                                 })
                                 .addOnFailureListener(e -> {
-                                    errorMessage.setValue("Failed to update QR code: " + e.getMessage());
+                                    errorMessage.setValue("Failed to update session: " + e.getMessage());
                                     isLoading.setValue(false);
                                     listener.onFailure(e.getMessage());
                                 });
@@ -422,27 +450,42 @@ public class AttendanceRepository {
 
     // Helper method to create QR code content
     private String createQRCodeContent(QRCode qrCode) {
-        // Create a JSON string with the relevant data
-        return "{\"qrCodeId\":\"" + qrCode.getQrCodeId() +
-                "\",\"sessionId\":\"" + qrCode.getSessionId() +
-                "\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}";
+        Map<String, Object> contentMap = new HashMap<>();
+        contentMap.put("qrCodeId", qrCode.getQrCodeId());
+        contentMap.put("sessionId", qrCode.getSessionId());
+        contentMap.put("courseId", qrCode.getCourseId());  // Add courseId
+        contentMap.put("generatedAt", System.currentTimeMillis());
+        contentMap.put("expiresAt", qrCode.getExpiresAt().getTime());
+        contentMap.put("instructorId", qrCode.getInstructorId());  // Add instructor ID for verification
+
+        // Convert to JSON string - in a real app, use Gson or similar library
+        try {
+            return new JSONObject(contentMap).toString();
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating QR content", e);
+            return "{}";  // Return empty JSON as fallback
+        }
     }
 
     // Helper method to parse QR code content
     private QRCodeData parseQRCodeContent(String content) {
         try {
-            // Parse the JSON content - in a real app you would use Gson or similar
-            // Simplified parsing for demonstration
-            if (content.contains("qrCodeId") && content.contains("sessionId")) {
-                QRCodeData data = new QRCodeData();
+            JSONObject jsonObject = new JSONObject(content);
+            QRCodeData data = new QRCodeData();
 
-                int qrIdStart = content.indexOf("qrCodeId") + 11; // "qrCodeId":"
-                int qrIdEnd = content.indexOf("\"", qrIdStart);
-                data.qrCodeId = content.substring(qrIdStart, qrIdEnd);
+            // Extract all needed data
+            if (jsonObject.has("qrCodeId") && jsonObject.has("sessionId")) {
+                data.qrCodeId = jsonObject.getString("qrCodeId");
+                data.sessionId = jsonObject.getString("sessionId");
 
-                int sessionIdStart = content.indexOf("sessionId") + 12; // "sessionId":"
-                int sessionIdEnd = content.indexOf("\"", sessionIdStart);
-                data.sessionId = content.substring(sessionIdStart, sessionIdEnd);
+                // Get optional data if available
+                if (jsonObject.has("courseId")) {
+                    data.courseId = jsonObject.getString("courseId");
+                }
+
+                if (jsonObject.has("expiresAt")) {
+                    data.expiresAt = jsonObject.getLong("expiresAt");
+                }
 
                 return data;
             }
@@ -452,10 +495,13 @@ public class AttendanceRepository {
         return null;
     }
 
+
     // Static class to hold QR code parsed data
     private static class QRCodeData {
         String qrCodeId;
         String sessionId;
+        String courseId;
+        long expiresAt;
     }
 
     // Helper method to convert AttendanceRecord to Map for Firestore
@@ -496,6 +542,8 @@ public class AttendanceRepository {
         Map<String, Object> qrCodeMap = new HashMap<>();
         qrCodeMap.put("qrCodeId", qrCode.getQrCodeId());
         qrCodeMap.put("sessionId", qrCode.getSessionId());
+        qrCodeMap.put("courseId", qrCode.getCourseId());
+        qrCodeMap.put("instructorId", qrCode.getInstructorId());
         qrCodeMap.put("content", qrCode.getContent());
         qrCodeMap.put("imageUrl", qrCode.getImageUrl());
         qrCodeMap.put("generatedAt", qrCode.getGeneratedAt());

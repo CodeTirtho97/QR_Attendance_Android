@@ -13,6 +13,10 @@ public class QRCode {
     private int scanCount; // Number of times this QR code has been scanned
     private QRCodeType type;
 
+    private String courseId;
+    private String instructorId;
+
+
     public enum QRCodeType {
         SESSION_ATTENDANCE("SESSION_ATTENDANCE"),
         COURSE_ENROLLMENT("COURSE_ENROLLMENT"),
@@ -120,6 +124,22 @@ public class QRCode {
 
     public void setType(QRCodeType type) {
         this.type = type;
+    }
+
+    public String getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(String courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getInstructorId() {
+        return instructorId;
+    }
+
+    public void setInstructorId(String instructorId) {
+        this.instructorId = instructorId;
     }
 
     // Increment scan count

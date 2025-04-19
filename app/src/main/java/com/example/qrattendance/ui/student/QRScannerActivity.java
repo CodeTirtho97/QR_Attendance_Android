@@ -22,10 +22,13 @@ import com.example.qrattendance.data.model.AttendanceRecord;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AttendanceRepository;
 import com.example.qrattendance.util.SessionManager;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.zxing.ResultPoint;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.DecoratedBarcodeView;
+
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -76,10 +79,28 @@ public class QRScannerActivity extends AppCompatActivity {
         tvTimestamp = findViewById(R.id.tvTimestamp);
         btnDone = findViewById(R.id.btnDone);
 
-        // Set up click listeners
+        // Set up click listeners - make sure each of these buttons exists in your layout
         btnClose.setOnClickListener(v -> finish());
         btnTorch.setOnClickListener(v -> toggleTorch());
         btnDone.setOnClickListener(v -> finish());
+
+        // Debug button - ONLY set click listener if the button exists in layout
+        Button btnDebugScan = findViewById(R.id.btnDebugScan);
+        if (btnDebugScan != null) {
+            btnDebugScan.setOnClickListener(v -> {
+                // Get the last generated QR content from shared preferences
+                String savedQrContent = getSharedPreferences("QRAttendance", MODE_PRIVATE)
+                        .getString("lastTestQRContent", null);
+
+                if (savedQrContent != null) {
+                    Log.d("QR_SCAN_DEBUG", "Scanned content: " + savedQrContent);
+                    processScanResult(savedQrContent);
+                } else {
+                    Toast.makeText(this, "No test QR content available. Generate a QR code first.",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+        }
 
         // Check and request camera permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -87,33 +108,6 @@ public class QRScannerActivity extends AppCompatActivity {
         } else {
             startScanning();
         }
-
-        // For testing on emulator
-        if (TEST_MODE) {
-            // Use test data instead of camera scanning
-            processScanResult(TEST_QR_CONTENT);
-        } else {
-            // Regular camera scanning code
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
-            } else {
-                startScanning();
-            }
-        }
-
-        Button btnDebugScan = findViewById(R.id.btnDebugScan);
-        btnDebugScan.setOnClickListener(v -> {
-            // Get the last generated QR content from shared preferences
-            String savedQrContent = getSharedPreferences("QRAttendance", MODE_PRIVATE)
-                    .getString("lastTestQRContent", null);
-
-            if (savedQrContent != null) {
-                debugScanQR(savedQrContent);
-            } else {
-                Toast.makeText(this, "No test QR content available. Generate a QR code first.",
-                        Toast.LENGTH_LONG).show();
-            }
-        });
     }
 
     private void startScanning() {
@@ -144,28 +138,24 @@ public class QRScannerActivity extends AppCompatActivity {
         AttendanceRecord.LocationData location = new AttendanceRecord.LocationData(
                 0.0, 0.0, "Unknown Location");
 
+        Log.d("QR_SCAN_DEBUG", "Scanned content: " + scanContent);
+
         // Mark attendance in Firebase
         attendanceRepository.markAttendance(scanContent, currentStudent.getUserId(), location,
                 new AttendanceRepository.OnAttendanceListener() {
                     @Override
                     public void onSuccess(String message) {
-                        // Show success overlay
-                        runOnUiThread(() -> {
-                            // Set timestamp to now
-                            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault());
-                            tvTimestamp.setText(sdf.format(new Date()));
+                        // Parse the QR content to get sessionId
+                        try {
+                            JSONObject jsonObject = new JSONObject(scanContent);
+                            String sessionId = jsonObject.getString("sessionId");
 
-                            // Update course details - in a real app, you'd get this from Firebase
-                            // For demo, just show a message
-                            tvCourseDetails.setText("Attendance marked successfully!");
-
-                            // Show success overlay
-                            successOverlay.setVisibility(View.VISIBLE);
-
-                            // Add the attendance record ID to student's records
-                            // Note: In a real app with proper transaction handling, this would be done in the repository
-                            currentStudent.addAttendanceRecord("att_" + System.currentTimeMillis());
-                        });
+                            // Fetch session details to display course info
+                            fetchSessionDetails(sessionId);
+                        } catch (Exception e) {
+                            // If parsing fails, just show generic success
+                            showSuccessOverlay("Attendance marked successfully!", "Unknown Course", new Date());
+                        }
                     }
 
                     @Override
@@ -182,6 +172,68 @@ public class QRScannerActivity extends AppCompatActivity {
                     }
                 });
     }
+
+
+    private void fetchSessionDetails(String sessionId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("sessions").document(sessionId)
+                .get()
+                .addOnSuccessListener(sessionDoc -> {
+                    if (sessionDoc.exists()) {
+                        String courseId = sessionDoc.getString("courseId");
+                        String sessionTitle = sessionDoc.getString("title");
+                        Date timestamp = new Date();
+
+                        // Fetch course details if courseId exists
+                        if (courseId != null && !courseId.isEmpty()) {
+                            db.collection("courses").document(courseId)
+                                    .get()
+                                    .addOnSuccessListener(courseDoc -> {
+                                        if (courseDoc.exists()) {
+                                            String courseName = courseDoc.getString("courseName");
+                                            String courseCode = courseDoc.getString("courseCode");
+                                            String courseInfo = courseCode + " - " + courseName;
+
+                                            if (sessionTitle != null && !sessionTitle.isEmpty()) {
+                                                courseInfo += "\n" + sessionTitle;
+                                            }
+
+                                            showSuccessOverlay("Attendance marked successfully!", courseInfo, timestamp);
+                                        } else {
+                                            showSuccessOverlay("Attendance marked successfully!", "Unknown Course", timestamp);
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        showSuccessOverlay("Attendance marked successfully!", "Unknown Course", timestamp);
+                                    });
+                        } else {
+                            showSuccessOverlay("Attendance marked successfully!", "Unknown Course", timestamp);
+                        }
+                    } else {
+                        showSuccessOverlay("Attendance marked successfully!", "Unknown Course", new Date());
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    showSuccessOverlay("Attendance marked successfully!", "Unknown Course", new Date());
+                });
+    }
+
+    // Helper method to display success overlay
+    private void showSuccessOverlay(String message, String courseInfo, Date timestamp) {
+        runOnUiThread(() -> {
+            // Format timestamp
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault());
+            String timestampStr = sdf.format(timestamp);
+
+            // Update UI elements
+            tvCourseDetails.setText(courseInfo);
+            tvTimestamp.setText(timestampStr);
+
+            // Show success overlay
+            successOverlay.setVisibility(View.VISIBLE);
+        });
+    }
+
 
     private void toggleTorch() {
         if (barcodeView != null) {
@@ -222,40 +274,56 @@ public class QRScannerActivity extends AppCompatActivity {
     }
 
     private void debugScanQR(String qrContent) {
-        Log.d("DEBUG_SCAN", "Processing test QR content: " + qrContent);
+        Log.d("QR_SCAN_DEBUG", "Scanning QR content: " + qrContent);
 
-        // Create a location for testing
-        AttendanceRecord.LocationData location = new AttendanceRecord.LocationData(
-                0.0, 0.0, "Test Location");
+        try {
+            // Parse the JSON to see what we're getting
+            JSONObject jsonObject = new JSONObject(qrContent);
+            String qrCodeId = jsonObject.optString("qrCodeId", "missing");
+            String sessionId = jsonObject.optString("sessionId", "missing");
 
-        // Mark attendance with the test QR code
-        attendanceRepository.markAttendance(qrContent, currentStudent.getUserId(), location,
-                new AttendanceRepository.OnAttendanceListener() {
-                    @Override
-                    public void onSuccess(String message) {
-                        Log.d("DEBUG_SCAN", "Attendance marked successfully: " + message);
-                        runOnUiThread(() -> {
+            Log.d("QR_SCAN_DEBUG", "Parsed QR code ID: " + qrCodeId);
+            Log.d("QR_SCAN_DEBUG", "Parsed session ID: " + sessionId);
+
+            // Verify this QR code exists in Firestore
+            FirebaseFirestore.getInstance().collection("qr_codes")
+                    .document(qrCodeId)
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            Log.d("QR_SCAN_DEBUG", "QR code found in database!");
+                            // Continue with attendance marking
+                            AttendanceRecord.LocationData location = new AttendanceRecord.LocationData(0.0, 0.0, "Debug Location");
+                            attendanceRepository.markAttendance(qrContent, currentStudent.getUserId(), location,
+                                    new AttendanceRepository.OnAttendanceListener() {
+                                        @Override
+                                        public void onSuccess(String message) {
+                                            Log.d("QR_SCAN_DEBUG", "Attendance marked successfully: " + message);
+                                            showSuccessOverlay("Success!", "Debug Attendance", new Date());
+                                        }
+
+                                        @Override
+                                        public void onFailure(String errorMessage) {
+                                            Log.e("QR_SCAN_DEBUG", "Attendance marking failed: " + errorMessage);
+                                            Toast.makeText(QRScannerActivity.this,
+                                                    "Error: " + errorMessage, Toast.LENGTH_LONG).show();
+                                        }
+                                    });
+                        } else {
+                            Log.e("QR_SCAN_DEBUG", "QR code NOT found in database!");
                             Toast.makeText(QRScannerActivity.this,
-                                    "Attendance marked successfully!",
-                                    Toast.LENGTH_LONG).show();
+                                    "QR code not found in database. ID: " + qrCodeId, Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("QR_SCAN_DEBUG", "Error checking QR code: " + e.getMessage());
+                        Toast.makeText(QRScannerActivity.this,
+                                "Error checking QR code: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
 
-                            // Show success overlay
-                            tvCourseDetails.setText("Attendance marked for test session");
-                            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault());
-                            tvTimestamp.setText(sdf.format(new Date()));
-                            successOverlay.setVisibility(View.VISIBLE);
-                        });
-                    }
-
-                    @Override
-                    public void onFailure(String errorMessage) {
-                        Log.e("DEBUG_SCAN", "Attendance marking failed: " + errorMessage);
-                        runOnUiThread(() -> {
-                            Toast.makeText(QRScannerActivity.this,
-                                    "Error: " + errorMessage,
-                                    Toast.LENGTH_LONG).show();
-                        });
-                    }
-                });
+        } catch (Exception e) {
+            Log.e("QR_SCAN_DEBUG", "Error parsing QR content: " + e.getMessage());
+            Toast.makeText(this, "Invalid QR code format: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 }
