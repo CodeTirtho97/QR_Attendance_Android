@@ -73,7 +73,6 @@
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
         <!-- Instructor QR Generator Activity -->
-        <!-- Instructor QR Generator Activity -->
         <activity
             android:name=".ui.instructor.GenerateQRActivity"
             android:exported="false"

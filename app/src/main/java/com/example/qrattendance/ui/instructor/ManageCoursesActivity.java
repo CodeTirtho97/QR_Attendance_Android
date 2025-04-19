@@ -230,6 +230,52 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
         });
     }
 
+    private void showEnrollStudentDialog(Course course) {
+        // Inflate the dialog layout
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_enroll_student, null);
+
+        TextInputLayout tilStudentId = dialogView.findViewById(R.id.tilStudentId);
+        TextInputEditText etStudentId = dialogView.findViewById(R.id.etStudentId);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Enroll Student")
+                .setView(dialogView)
+                .setPositiveButton("Enroll", null)
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.show();
+
+        // Set positive button click listener after showing dialog to prevent auto-dismiss
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String studentId = etStudentId.getText().toString().trim();
+
+            if (studentId.isEmpty()) {
+                tilStudentId.setError("Student ID is required");
+                return;
+            }
+
+            // Enroll student in the course
+            courseRepository.enrollStudent(course.getCourseId(), studentId, new CourseRepository.OnCompleteListener() {
+                @Override
+                public void onSuccess(String id) {
+                    Toast.makeText(ManageCoursesActivity.this,
+                            "Student enrolled successfully", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+
+                    // Refresh course list to show updated student count
+                    courseRepository.fetchCoursesByInstructor(currentInstructor.getUserId());
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    Toast.makeText(ManageCoursesActivity.this,
+                            "Failed to enroll student: " + errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
     @Override
     public void onCourseClick(Course course, int position) {
         // TODO: Implement course details view
@@ -244,8 +290,7 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
 
     @Override
     public void onManageStudentsClick(Course course, int position) {
-        // TODO: Implement manage students
-        Toast.makeText(this, "Manage students coming soon", Toast.LENGTH_SHORT).show();
+        showEnrollStudentDialog(course);
     }
 
     @Override
