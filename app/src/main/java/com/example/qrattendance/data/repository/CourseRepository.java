@@ -6,7 +6,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.qrattendance.data.model.Course;
+import com.example.qrattendance.data.model.Session;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -25,6 +27,7 @@ public class CourseRepository {
     private final MutableLiveData<List<Course>> coursesLiveData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<List<Session>> sessionsLiveData = new MutableLiveData<>();
 
     // Private constructor for singleton pattern
     private CourseRepository() {
@@ -54,6 +57,10 @@ public class CourseRepository {
         return isLoading;
     }
 
+    public LiveData<List<Session>> getSessions() {
+        return sessionsLiveData;
+    }
+
     // Fetch courses by instructor ID
     public void fetchCoursesByInstructor(String instructorId) {
         isLoading.setValue(true);
@@ -79,6 +86,38 @@ public class CourseRepository {
                     }
 
                     coursesLiveData.setValue(courses);
+                    isLoading.setValue(false);
+                });
+    }
+
+    public void fetchSessionsByCourse(String courseId) {
+        isLoading.setValue(true);
+
+        // Make sure the query is properly filtering by courseId
+        firestore.collection("sessions")
+                .whereEqualTo("courseId", courseId) // This is crucial - ensure it's being applied correctly
+                .orderBy("startTime", Query.Direction.DESCENDING)
+                .get() // Use get() instead of addSnapshotListener for one-time loading
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Session> sessions = new ArrayList<>();
+
+                    for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                        Session session = document.toObject(Session.class);
+                        if (session != null) {
+                            session.setSessionId(document.getId());
+                            session.updateStatus();
+                            sessions.add(session);
+                        }
+                    }
+
+                    Log.d("CourseRepository", "Fetching sessions for courseId: " + courseId);
+                    Log.d("CourseRepository", "Found " + sessions.size() + " sessions");
+
+                    sessionsLiveData.setValue(sessions);
+                    isLoading.setValue(false);
+                })
+                .addOnFailureListener(e -> {
+                    errorMessage.setValue("Failed to load sessions: " + e.getMessage());
                     isLoading.setValue(false);
                 });
     }

@@ -6,9 +6,12 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.qrattendance.data.model.AttendanceRecord;
+import com.example.qrattendance.data.model.Course;
 import com.example.qrattendance.data.model.QRCode;
 import com.example.qrattendance.data.model.Session;
+import com.example.qrattendance.data.model.Student;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -37,6 +40,8 @@ public class AttendanceRepository {
     private final MutableLiveData<List<Session>> sessionsLiveData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<Map<String, Object>> courseDetailsLiveData = new MutableLiveData<>();
+    private final MutableLiveData<Map<String, Object>> sessionDetailsLiveData = new MutableLiveData<>();
 
     // Private constructor for singleton pattern
     private AttendanceRepository() {
@@ -69,6 +74,16 @@ public class AttendanceRepository {
     // Get loading state
     public LiveData<Boolean> getIsLoading() {
         return isLoading;
+    }
+
+    // Get course details with related data
+    public LiveData<Map<String, Object>> getCourseDetails() {
+        return courseDetailsLiveData;
+    }
+
+    // Get session details with related data
+    public LiveData<Map<String, Object>> getSessionDetails() {
+        return sessionDetailsLiveData;
     }
 
     // Fetch sessions by course ID
@@ -160,6 +175,76 @@ public class AttendanceRepository {
                 });
     }
 
+    // Fetch course information by ID
+    public void fetchCourseInfo(String courseId, OnCourseInfoListener listener) {
+        if (courseId == null) {
+            listener.onResult("Unknown Course", false);
+            return;
+        }
+
+        firestore.collection("courses").document(courseId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String courseCode = documentSnapshot.getString("courseCode");
+                        String courseName = documentSnapshot.getString("courseName");
+
+                        String result;
+                        if (courseCode != null && courseName != null) {
+                            result = courseCode + " - " + courseName;
+                        } else if (courseName != null) {
+                            result = courseName;
+                        } else if (courseCode != null) {
+                            result = courseCode;
+                        } else {
+                            result = "Unnamed Course";
+                        }
+                        listener.onResult(result, true);
+                    } else {
+                        listener.onResult("Unknown Course", false);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    listener.onResult("Unknown Course", false);
+                });
+    }
+
+    // Fetch session information by ID
+    public void fetchSessionInfo(String sessionId, OnSessionInfoListener listener) {
+        if (sessionId == null) {
+            listener.onResult("Unknown Session", false);
+            return;
+        }
+
+        firestore.collection("sessions").document(sessionId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String title = documentSnapshot.getString("title");
+                        if (title != null) {
+                            listener.onResult(title, true);
+                        } else {
+                            listener.onResult("Unnamed Session", false);
+                        }
+                    } else {
+                        listener.onResult("Unknown Session", false);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    listener.onResult("Unknown Session", false);
+                });
+    }
+
+    // Interface for course info callback
+    public interface OnCourseInfoListener {
+        void onResult(String courseInfo, boolean success);
+    }
+
+    // Interface for session info callback
+    public interface OnSessionInfoListener {
+        void onResult(String sessionInfo, boolean success);
+    }
+
     // Mark attendance using QR code
     public void markAttendance(String qrCodeContent, String studentId, AttendanceRecord.LocationData location, OnAttendanceListener listener) {
         isLoading.setValue(true);
@@ -178,6 +263,8 @@ public class AttendanceRepository {
             String courseId = qrData.courseId;
 
             Log.d(TAG, "Looking for QR code with ID: " + qrCodeId);
+            Log.d(TAG, "Session ID: " + sessionId);
+            Log.d(TAG, "Course ID: " + (courseId != null ? courseId : "Not provided in QR"));
 
             // 1. First check if attendance has already been marked
             firestore.collection(ATTENDANCE_COLLECTION)
@@ -255,6 +342,7 @@ public class AttendanceRepository {
                                                             .set(recordMap)
                                                             .addOnSuccessListener(aVoid -> {
                                                                 // 6. Update attendance count in QR code
+                                                                Log.d(TAG, "Attendance record added with ID: " + attendanceId);
                                                                 firestore.collection(QRCODES_COLLECTION).document(qrCodeId)
                                                                         .update("scanCount", qrCode.getScanCount() + 1);
 
@@ -495,6 +583,144 @@ public class AttendanceRepository {
         return null;
     }
 
+    // Fetch session and its attendance details
+    public void fetchSessionWithAttendanceDetails(String sessionId) {
+        isLoading.setValue(true);
+
+        Map<String, Object> sessionDetails = new HashMap<>();
+
+        // First, get the session data
+        firestore.collection(SESSIONS_COLLECTION).document(sessionId)
+                .get()
+                .addOnSuccessListener(sessionSnapshot -> {
+                    if (sessionSnapshot.exists()) {
+                        Session session = sessionSnapshot.toObject(Session.class);
+                        if (session != null) {
+                            session.setSessionId(sessionSnapshot.getId());
+                            sessionDetails.put("session", session);
+
+                            // Get the course data
+                            firestore.collection(COURSES_COLLECTION).document(session.getCourseId())
+                                    .get()
+                                    .addOnSuccessListener(courseSnapshot -> {
+                                        if (courseSnapshot.exists()) {
+                                            Course course = courseSnapshot.toObject(Course.class);
+                                            if (course != null) {
+                                                course.setCourseId(courseSnapshot.getId());
+                                                sessionDetails.put("course", course);
+                                            }
+                                        }
+
+                                        // Get all attendance records for this session
+                                        firestore.collection(ATTENDANCE_COLLECTION)
+                                                .whereEqualTo("sessionId", sessionId)
+                                                .get()
+                                                .addOnSuccessListener(recordSnapshots -> {
+                                                    List<AttendanceRecord> records = new ArrayList<>();
+                                                    List<String> studentIds = new ArrayList<>();
+
+                                                    for (DocumentSnapshot doc : recordSnapshots.getDocuments()) {
+                                                        AttendanceRecord record = doc.toObject(AttendanceRecord.class);
+                                                        if (record != null) {
+                                                            record.setRecordId(doc.getId());
+                                                            records.add(record);
+                                                            studentIds.add(record.getStudentId());
+                                                        }
+                                                    }
+                                                    sessionDetails.put("attendanceRecords", records);
+
+                                                    // Calculate attendance statistics
+                                                    Map<String, Object> stats = new HashMap<>();
+                                                    stats.put("totalPresent", records.size());
+
+                                                    Course course = (Course) sessionDetails.get("course");
+                                                    if (course != null && course.getEnrolledStudentIds() != null) {
+                                                        stats.put("totalStudents", course.getEnrolledStudentIds().size());
+                                                        stats.put("absentCount", course.getEnrolledStudentIds().size() - records.size());
+
+                                                        if (course.getEnrolledStudentIds().size() > 0) {
+                                                            double percentage = (double) records.size() * 100 / course.getEnrolledStudentIds().size();
+                                                            stats.put("attendancePercentage", Math.round(percentage * 10) / 10.0); // Round to 1 decimal place
+                                                        } else {
+                                                            stats.put("attendancePercentage", 0.0);
+                                                        }
+                                                    } else {
+                                                        stats.put("totalStudents", 0);
+                                                        stats.put("absentCount", 0);
+                                                        stats.put("attendancePercentage", 0.0);
+                                                    }
+
+                                                    sessionDetails.put("stats", stats);
+
+                                                    // Get all student details for those who are present
+                                                    fetchStudentDetails(studentIds, sessionDetails);
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    errorMessage.setValue("Failed to fetch attendance records: " + e.getMessage());
+                                                    isLoading.setValue(false);
+                                                });
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        errorMessage.setValue("Failed to fetch course: " + e.getMessage());
+                                        isLoading.setValue(false);
+                                    });
+                        } else {
+                            errorMessage.setValue("Failed to parse session data");
+                            isLoading.setValue(false);
+                        }
+                    } else {
+                        errorMessage.setValue("Session not found");
+                        isLoading.setValue(false);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    errorMessage.setValue("Failed to fetch session: " + e.getMessage());
+                    isLoading.setValue(false);
+                });
+    }
+
+    // Fetch student details for attendance records
+    private void fetchStudentDetails(List<String> studentIds, Map<String, Object> sessionDetails) {
+        if (studentIds.isEmpty()) {
+            sessionDetailsLiveData.setValue(sessionDetails);
+            isLoading.setValue(false);
+            return;
+        }
+
+        Map<String, Student> studentMap = new HashMap<>();
+        final int[] fetchCount = {0};
+        final int totalToFetch = studentIds.size();
+
+        for (String studentId : studentIds) {
+            firestore.collection(USERS_COLLECTION).document(studentId)
+                    .get()
+                    .addOnSuccessListener(studentDoc -> {
+                        if (studentDoc.exists()) {
+                            Student student = studentDoc.toObject(Student.class);
+                            if (student != null) {
+                                student.setUserId(studentDoc.getId());
+                                studentMap.put(studentId, student);
+                            }
+                        }
+
+                        fetchCount[0]++;
+                        if (fetchCount[0] >= totalToFetch) {
+                            sessionDetails.put("students", studentMap);
+                            sessionDetailsLiveData.setValue(sessionDetails);
+                            isLoading.setValue(false);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        fetchCount[0]++;
+                        if (fetchCount[0] >= totalToFetch) {
+                            sessionDetails.put("students", studentMap);
+                            sessionDetailsLiveData.setValue(sessionDetails);
+                            isLoading.setValue(false);
+                        }
+                    });
+        }
+    }
+
 
     // Static class to hold QR code parsed data
     private static class QRCodeData {
@@ -507,6 +733,7 @@ public class AttendanceRepository {
     // Helper method to convert AttendanceRecord to Map for Firestore
     private Map<String, Object> attendanceRecordToMap(AttendanceRecord record) {
         Map<String, Object> recordMap = new HashMap<>();
+        recordMap.put("recordId", record.getRecordId());  // Make sure this field is included
         recordMap.put("sessionId", record.getSessionId());
         recordMap.put("courseId", record.getCourseId());
         recordMap.put("studentId", record.getStudentId());

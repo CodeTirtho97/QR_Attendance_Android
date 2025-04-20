@@ -84,5 +84,21 @@
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
+        <!-- Instructor Attendance Activities -->
+        <activity
+            android:name=".ui.instructor.ViewAttendanceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+        <activity
+            android:name=".ui.instructor.SessionAttendanceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
+        <!-- Student Attendance Activity -->
+        <activity
+            android:name=".ui.student.MyAttendanceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
     </application>
 </manifest>

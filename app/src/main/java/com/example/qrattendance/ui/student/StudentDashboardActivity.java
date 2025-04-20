@@ -16,12 +16,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AuthRepository;
-import com.example.qrattendance.ui.auth.LoginActivity;
 import com.example.qrattendance.util.SessionManager;
 
 public class StudentDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
+    private TextView tvStudentId;
     private SessionManager sessionManager;
     private AuthRepository authRepository;
 
@@ -41,6 +41,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeStudent);
+        tvStudentId = findViewById(R.id.tvStudentId);
 
         // Find all clickable elements
         findViewById(R.id.cardScanQr).setOnClickListener(v -> openQRScanner());
@@ -58,24 +59,22 @@ public class StudentDashboardActivity extends AppCompatActivity {
         }
     }
 
-    // Add these handler methods
     private void openQRScanner() {
         Intent intent = new Intent(this, QRScannerActivity.class);
         startActivity(intent);
     }
 
     private void viewMyAttendance() {
-        // TODO: Open Attendance view activity
-        Toast.makeText(this, "View Attendance feature coming soon", Toast.LENGTH_SHORT).show();
+        // Open MyAttendanceActivity to view attendance records
+        Intent intent = new Intent(this, MyAttendanceActivity.class);
+        startActivity(intent);
     }
 
     private void viewMyCourses() {
-        // TODO: Open My Courses activity
         Toast.makeText(this, "My Courses feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     private void viewProfile() {
-        // TODO: Open Profile activity
         Toast.makeText(this, "Profile feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
@@ -84,6 +83,10 @@ public class StudentDashboardActivity extends AppCompatActivity {
         if (student != null) {
             String welcomeMessage = "Welcome, " + student.getName() + "!";
             tvWelcome.setText(welcomeMessage);
+
+            String studentIdText = "ID: " + (student.getRollNumber() != null ?
+                    student.getRollNumber() : "Unknown");
+            tvStudentId.setText(studentIdText);
         }
     }
 

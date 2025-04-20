@@ -16,12 +16,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Instructor;
 import com.example.qrattendance.data.repository.AuthRepository;
-import com.example.qrattendance.ui.auth.LoginActivity;
 import com.example.qrattendance.util.SessionManager;
 
 public class InstructorDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
+    private TextView tvInstructorId;
     private SessionManager sessionManager;
     private AuthRepository authRepository;
 
@@ -41,6 +41,7 @@ public class InstructorDashboardActivity extends AppCompatActivity {
 
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeInstructor);
+        tvInstructorId = findViewById(R.id.tvInstructorId);
 
         // Find all clickable elements
         findViewById(R.id.cardGenerateQr).setOnClickListener(v -> generateQRCode());
@@ -58,15 +59,15 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         }
     }
 
-    // Add these handler methods
     private void generateQRCode() {
         Intent intent = new Intent(this, GenerateQRActivity.class);
         startActivity(intent);
     }
 
     private void viewAttendance() {
-        // TODO: Open View Attendance activity
-        Toast.makeText(this, "View Attendance feature coming soon", Toast.LENGTH_SHORT).show();
+        // Open the ViewAttendanceActivity
+        Intent intent = new Intent(this, ViewAttendanceActivity.class);
+        startActivity(intent);
     }
 
     private void manageCourses() {
@@ -75,7 +76,6 @@ public class InstructorDashboardActivity extends AppCompatActivity {
     }
 
     private void viewReports() {
-        // TODO: Open Reports activity
         Toast.makeText(this, "Reports feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
@@ -84,6 +84,10 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         if (instructor != null) {
             String welcomeMessage = "Welcome, " + instructor.getName() + "!";
             tvWelcome.setText(welcomeMessage);
+
+            String instructorIdText = "ID: " + (instructor.getEmployeeId() != null ?
+                    instructor.getEmployeeId() : "Unknown");
+            tvInstructorId.setText(instructorIdText);
         }
     }
 
