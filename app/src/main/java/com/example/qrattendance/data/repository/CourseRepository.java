@@ -14,6 +14,7 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +22,12 @@ import java.util.Map;
 public class CourseRepository {
     private static final String TAG = "CourseRepository";
     private static final String COURSES_COLLECTION = "courses";
+    private static final String USERS_COLLECTION = "users";
 
     private static CourseRepository instance;
     private final FirebaseFirestore firestore;
     private final MutableLiveData<List<Course>> coursesLiveData = new MutableLiveData<>();
+    private final MutableLiveData<List<Course>> allCoursesLiveData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     private final MutableLiveData<List<Session>> sessionsLiveData = new MutableLiveData<>();
@@ -42,9 +45,14 @@ public class CourseRepository {
         return instance;
     }
 
-    // Get all courses
+    // Get all courses for a specific instructor
     public LiveData<List<Course>> getCourses() {
         return coursesLiveData;
+    }
+
+    // Get all courses in the system
+    public LiveData<List<Course>> getAllCourses() {
+        return allCoursesLiveData;
     }
 
     // Get error message
@@ -86,6 +94,42 @@ public class CourseRepository {
                     }
 
                     coursesLiveData.setValue(courses);
+                    isLoading.setValue(false);
+                });
+    }
+
+    // Fetch all active courses in the system
+    public void fetchAllActiveCourses() {
+        isLoading.setValue(true);
+
+        // Use a simpler query that filters by isActive but doesn't sort (to avoid index issues)
+        firestore.collection(COURSES_COLLECTION)
+                .whereEqualTo("isActive", true)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Course> courses = new ArrayList<>();
+
+                    for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                        Course course = document.toObject(Course.class);
+                        if (course != null) {
+                            course.setCourseId(document.getId());
+                            courses.add(course);
+                        }
+                    }
+
+                    // Sort locally instead of in the query
+                    Collections.sort(courses, (a, b) -> {
+                        if (a.getCourseName() == null && b.getCourseName() == null) return 0;
+                        if (a.getCourseName() == null) return -1;
+                        if (b.getCourseName() == null) return 1;
+                        return a.getCourseName().compareToIgnoreCase(b.getCourseName());
+                    });
+
+                    allCoursesLiveData.setValue(courses);
+                    isLoading.setValue(false);
+                })
+                .addOnFailureListener(e -> {
+                    errorMessage.setValue("Failed to load courses: " + e.getMessage());
                     isLoading.setValue(false);
                 });
     }
@@ -220,71 +264,241 @@ public class CourseRepository {
     public void enrollStudent(String courseId, String studentId, OnCompleteListener listener) {
         isLoading.setValue(true);
 
+        // Get references to the course and student documents
         DocumentReference courseRef = firestore.collection(COURSES_COLLECTION).document(courseId);
+        DocumentReference studentRef = firestore.collection(USERS_COLLECTION).document(studentId);
 
-        firestore.runTransaction(transaction -> {
-            Course course = transaction.get(courseRef).toObject(Course.class);
-            if (course == null) {
-                try {
-                    throw new Exception("Course not found");
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        // Non-transaction approach for better reliability
+        // First, get the course and check if student is already enrolled
+        courseRef.get()
+                .addOnSuccessListener(courseSnapshot -> {
+                    if (courseSnapshot.exists()) {
+                        Course course = courseSnapshot.toObject(Course.class);
+                        if (course != null) {
+                            // Make sure the enrolledStudentIds list exists
+                            List<String> enrolledStudents = course.getEnrolledStudentIds();
+                            if (enrolledStudents == null) {
+                                enrolledStudents = new ArrayList<>();
+                            }
 
-            if (course.getEnrolledStudentIds() == null) {
-                course.setEnrolledStudentIds(new ArrayList<>());
-            }
+                            // Check if student is already enrolled
+                            if (enrolledStudents.contains(studentId)) {
+                                isLoading.setValue(false);
+                                listener.onSuccess(courseId); // Already enrolled, consider it a success
+                                return;
+                            }
 
-            if (!course.getEnrolledStudentIds().contains(studentId)) {
-                course.getEnrolledStudentIds().add(studentId);
+                            // Add student to course
+                            enrolledStudents.add(studentId);
+                            courseRef.update("enrolledStudentIds", enrolledStudents)
+                                    .addOnSuccessListener(aVoid -> {
+                                        // Now update the student's enrolled courses
+                                        studentRef.get()
+                                                .addOnSuccessListener(studentSnapshot -> {
+                                                    if (studentSnapshot.exists()) {
+                                                        // Get current enrolled courses
+                                                        List<String> enrolledCourses = (List<String>) studentSnapshot.get("enrolledCourseIds");
+                                                        if (enrolledCourses == null) {
+                                                            enrolledCourses = new ArrayList<>();
+                                                        }
 
-                // Update the course with the new student list
-                transaction.update(courseRef, "enrolledStudentIds", course.getEnrolledStudentIds());
-            }
-
-            return null;
-        }).addOnSuccessListener(aVoid -> {
-            isLoading.setValue(false);
-            listener.onSuccess(courseId);
-        }).addOnFailureListener(e -> {
-            errorMessage.setValue("Failed to enroll student: " + e.getMessage());
-            isLoading.setValue(false);
-            listener.onFailure(e.getMessage());
-        });
+                                                        // Add course if not already enrolled
+                                                        if (!enrolledCourses.contains(courseId)) {
+                                                            enrolledCourses.add(courseId);
+                                                            studentRef.update("enrolledCourseIds", enrolledCourses)
+                                                                    .addOnSuccessListener(aVoid2 -> {
+                                                                        isLoading.setValue(false);
+                                                                        listener.onSuccess(courseId);
+                                                                    })
+                                                                    .addOnFailureListener(e -> {
+                                                                        isLoading.setValue(false);
+                                                                        listener.onFailure("Failed to update student record: " + e.getMessage());
+                                                                    });
+                                                        } else {
+                                                            isLoading.setValue(false);
+                                                            listener.onSuccess(courseId);
+                                                        }
+                                                    } else {
+                                                        isLoading.setValue(false);
+                                                        listener.onFailure("Student not found");
+                                                    }
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    isLoading.setValue(false);
+                                                    listener.onFailure("Failed to get student data: " + e.getMessage());
+                                                });
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        isLoading.setValue(false);
+                                        listener.onFailure("Failed to update course: " + e.getMessage());
+                                    });
+                        } else {
+                            isLoading.setValue(false);
+                            listener.onFailure("Course data is invalid");
+                        }
+                    } else {
+                        isLoading.setValue(false);
+                        listener.onFailure("Course not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    isLoading.setValue(false);
+                    listener.onFailure("Failed to get course data: " + e.getMessage());
+                });
     }
 
     // Remove student from course
     public void unenrollStudent(String courseId, String studentId, OnCompleteListener listener) {
         isLoading.setValue(true);
 
+        // Get references to the course and student documents
         DocumentReference courseRef = firestore.collection(COURSES_COLLECTION).document(courseId);
+        DocumentReference studentRef = firestore.collection(USERS_COLLECTION).document(studentId);
 
-        firestore.runTransaction(transaction -> {
-            Course course = transaction.get(courseRef).toObject(Course.class);
-            if (course == null) {
-                try {
-                    throw new Exception("Course not found");
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+        // Non-transaction approach for better reliability
+        // First, get the course and check if student is enrolled
+        courseRef.get()
+                .addOnSuccessListener(courseSnapshot -> {
+                    if (courseSnapshot.exists()) {
+                        Course course = courseSnapshot.toObject(Course.class);
+                        if (course != null) {
+                            // Make sure the enrolledStudentIds list exists
+                            List<String> enrolledStudents = course.getEnrolledStudentIds();
+                            if (enrolledStudents == null || !enrolledStudents.contains(studentId)) {
+                                isLoading.setValue(false);
+                                listener.onSuccess(courseId); // Not enrolled, consider it a success
+                                return;
+                            }
+
+                            // Remove student from course
+                            enrolledStudents.remove(studentId);
+                            courseRef.update("enrolledStudentIds", enrolledStudents)
+                                    .addOnSuccessListener(aVoid -> {
+                                        // Now update the student's enrolled courses
+                                        studentRef.get()
+                                                .addOnSuccessListener(studentSnapshot -> {
+                                                    if (studentSnapshot.exists()) {
+                                                        // Get current enrolled courses
+                                                        List<String> enrolledCourses = (List<String>) studentSnapshot.get("enrolledCourseIds");
+                                                        if (enrolledCourses != null && enrolledCourses.contains(courseId)) {
+                                                            enrolledCourses.remove(courseId);
+                                                            studentRef.update("enrolledCourseIds", enrolledCourses)
+                                                                    .addOnSuccessListener(aVoid2 -> {
+                                                                        isLoading.setValue(false);
+                                                                        listener.onSuccess(courseId);
+                                                                    })
+                                                                    .addOnFailureListener(e -> {
+                                                                        isLoading.setValue(false);
+                                                                        listener.onFailure("Failed to update student record: " + e.getMessage());
+                                                                    });
+                                                        } else {
+                                                            isLoading.setValue(false);
+                                                            listener.onSuccess(courseId);
+                                                        }
+                                                    } else {
+                                                        isLoading.setValue(false);
+                                                        listener.onFailure("Student not found");
+                                                    }
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    isLoading.setValue(false);
+                                                    listener.onFailure("Failed to get student data: " + e.getMessage());
+                                                });
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        isLoading.setValue(false);
+                                        listener.onFailure("Failed to update course: " + e.getMessage());
+                                    });
+                        } else {
+                            isLoading.setValue(false);
+                            listener.onFailure("Course data is invalid");
+                        }
+                    } else {
+                        isLoading.setValue(false);
+                        listener.onFailure("Course not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    isLoading.setValue(false);
+                    listener.onFailure("Failed to get course data: " + e.getMessage());
+                });
+    }
+
+    // Get enrolled students for a course
+    public void getEnrolledStudents(String courseId, OnStudentsListener listener) {
+        isLoading.setValue(true);
+
+        getCourseById(courseId, new OnCourseListener() {
+            @Override
+            public void onCourseLoaded(Course course) {
+                List<String> studentIds = course.getEnrolledStudentIds();
+                if (studentIds == null || studentIds.isEmpty()) {
+                    isLoading.setValue(false);
+                    listener.onStudentsLoaded(new ArrayList<>());
+                    return;
+                }
+
+                List<Map<String, Object>> students = new ArrayList<>();
+                final int[] completedQueries = {0};
+
+                for (String studentId : studentIds) {
+                    firestore.collection(USERS_COLLECTION).document(studentId)
+                            .get()
+                            .addOnSuccessListener(document -> {
+                                completedQueries[0]++;
+
+                                if (document.exists()) {
+                                    Map<String, Object> studentData = document.getData();
+                                    if (studentData != null) {
+                                        studentData.put("userId", document.getId());
+                                        students.add(studentData);
+                                    }
+                                }
+
+                                // Check if all queries are completed
+                                if (completedQueries[0] >= studentIds.size()) {
+                                    isLoading.setValue(false);
+                                    listener.onStudentsLoaded(students);
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                completedQueries[0]++;
+
+                                // Check if all queries are completed
+                                if (completedQueries[0] >= studentIds.size()) {
+                                    isLoading.setValue(false);
+                                    listener.onStudentsLoaded(students);
+                                }
+                            });
                 }
             }
 
-            if (course.getEnrolledStudentIds() != null && course.getEnrolledStudentIds().contains(studentId)) {
-                course.getEnrolledStudentIds().remove(studentId);
+            @Override
+            public void onFailure(String errorMessage) {
+                isLoading.setValue(false);
+                listener.onFailure(errorMessage);
+            }
+        });
+    }
 
-                // Update the course with the new student list
-                transaction.update(courseRef, "enrolledStudentIds", course.getEnrolledStudentIds());
+    // Check if a student is enrolled in a course
+    public void isStudentEnrolled(String courseId, String studentId, OnEnrollmentCheckListener listener) {
+        isLoading.setValue(true);
+
+        getCourseById(courseId, new OnCourseListener() {
+            @Override
+            public void onCourseLoaded(Course course) {
+                List<String> enrolledStudents = course.getEnrolledStudentIds();
+                boolean isEnrolled = enrolledStudents != null && enrolledStudents.contains(studentId);
+                isLoading.setValue(false);
+                listener.onResult(isEnrolled);
             }
 
-            return null;
-        }).addOnSuccessListener(aVoid -> {
-            isLoading.setValue(false);
-            listener.onSuccess(courseId);
-        }).addOnFailureListener(e -> {
-            errorMessage.setValue("Failed to unenroll student: " + e.getMessage());
-            isLoading.setValue(false);
-            listener.onFailure(e.getMessage());
+            @Override
+            public void onFailure(String errorMessage) {
+                isLoading.setValue(false);
+                listener.onResult(false);
+            }
         });
     }
 
@@ -316,5 +530,14 @@ public class CourseRepository {
     public interface OnCourseListener {
         void onCourseLoaded(Course course);
         void onFailure(String errorMessage);
+    }
+
+    public interface OnStudentsListener {
+        void onStudentsLoaded(List<Map<String, Object>> students);
+        void onFailure(String errorMessage);
+    }
+
+    public interface OnEnrollmentCheckListener {
+        void onResult(boolean isEnrolled);
     }
 }

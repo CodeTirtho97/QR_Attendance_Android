@@ -8,20 +8,24 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AuthRepository;
 import com.example.qrattendance.util.SessionManager;
+import com.example.qrattendance.util.UIHelper;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class StudentDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
     private TextView tvStudentId;
+    private CardView cardScanQr, cardMyAttendance, cardMyCourses, cardProfile, cardEnrollment;
+    private FloatingActionButton fabScanQr;
     private SessionManager sessionManager;
     private AuthRepository authRepository;
 
@@ -37,26 +41,38 @@ public class StudentDashboardActivity extends AppCompatActivity {
         // Initialize UI components
         initViews();
         setupUserInfo();
+        setupClickListeners();
     }
 
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeStudent);
         tvStudentId = findViewById(R.id.tvStudentId);
 
-        // Find all clickable elements
-        findViewById(R.id.cardScanQr).setOnClickListener(v -> openQRScanner());
-        findViewById(R.id.cardMyAttendance).setOnClickListener(v -> viewMyAttendance());
-        findViewById(R.id.cardMyCourses).setOnClickListener(v -> viewMyCourses());
-        findViewById(R.id.cardProfile).setOnClickListener(v -> viewProfile());
+        // Find all card views
+        cardScanQr = findViewById(R.id.cardScanQr);
+        cardMyAttendance = findViewById(R.id.cardMyAttendance);
+        cardMyCourses = findViewById(R.id.cardMyCourses);
+        cardProfile = findViewById(R.id.cardProfile);
+        cardEnrollment = findViewById(R.id.cardEnrollment); // New enrollment card
 
-        // FAB click listener
-        findViewById(R.id.fabScanQr).setOnClickListener(v -> openQRScanner());
+        // FAB for scanning
+        fabScanQr = findViewById(R.id.fabScanQr);
 
         // Set up toolbar
         setSupportActionBar(findViewById(R.id.toolbar));
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Student Dashboard");
         }
+    }
+
+    private void setupClickListeners() {
+        // Setup click listeners for all cards and the FAB
+        cardScanQr.setOnClickListener(v -> openQRScanner());
+        cardMyAttendance.setOnClickListener(v -> viewMyAttendance());
+        cardMyCourses.setOnClickListener(v -> viewMyCourses());
+        cardProfile.setOnClickListener(v -> viewProfile());
+        cardEnrollment.setOnClickListener(v -> openCourseEnrollment());
+        fabScanQr.setOnClickListener(v -> openQRScanner());
     }
 
     private void openQRScanner() {
@@ -71,11 +87,19 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     private void viewMyCourses() {
-        Toast.makeText(this, "My Courses feature coming soon", Toast.LENGTH_SHORT).show();
+        // For now, this just shows a toast message
+        UIHelper.showErrorToast(this, "My Courses feature coming soon");
     }
 
     private void viewProfile() {
-        Toast.makeText(this, "Profile feature coming soon", Toast.LENGTH_SHORT).show();
+        // For now, this just shows a toast message
+        UIHelper.showErrorToast(this, "Profile feature coming soon");
+    }
+
+    private void openCourseEnrollment() {
+        // Open CourseEnrollmentActivity
+        Intent intent = new Intent(this, CourseEnrollmentActivity.class);
+        startActivity(intent);
     }
 
     private void setupUserInfo() {
@@ -119,6 +143,6 @@ public class StudentDashboardActivity extends AppCompatActivity {
         authRepository.logout();
         SessionManager.getInstance(this).logout(this);
 
-        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
+        UIHelper.showSuccessToast(this, "Logged out successfully");
     }
 }

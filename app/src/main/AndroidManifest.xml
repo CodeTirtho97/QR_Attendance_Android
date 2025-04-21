@@ -54,6 +54,12 @@
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
+        <!-- New Course Enrollment Activity -->
+        <activity
+            android:name=".ui.student.CourseEnrollmentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
         <!-- Instructor Activities -->
         <activity
             android:name=".ui.instructor.InstructorDashboardActivity"

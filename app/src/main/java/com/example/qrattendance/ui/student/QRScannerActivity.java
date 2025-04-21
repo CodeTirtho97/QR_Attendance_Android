@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,7 +22,9 @@ import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.AttendanceRecord;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AttendanceRepository;
+import com.example.qrattendance.data.repository.CourseRepository;
 import com.example.qrattendance.util.SessionManager;
+import com.example.qrattendance.util.UIHelper;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.zxing.ResultPoint;
@@ -45,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class QRScannerActivity extends AppCompatActivity {
 
+    private static final String TAG = "QRScannerActivity";
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 100;
 
     private static final boolean TEST_MODE = true; // Set to false for production
@@ -60,6 +62,7 @@ public class QRScannerActivity extends AppCompatActivity {
     private boolean scanComplete = false;
 
     private AttendanceRepository attendanceRepository;
+    private CourseRepository courseRepository;
     private Student currentStudent;
 
     @Override
@@ -67,13 +70,14 @@ public class QRScannerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_qr_scanner);
 
-        // Initialize repository
+        // Initialize repositories
         attendanceRepository = AttendanceRepository.getInstance();
+        courseRepository = CourseRepository.getInstance();
 
         // Get current student from session
         currentStudent = (Student) SessionManager.getInstance(this).getUserData();
         if (currentStudent == null) {
-            Toast.makeText(this, "Session error. Please log in again.", Toast.LENGTH_SHORT).show();
+            UIHelper.showErrorDialog(this, "Session Error", "Please log in again.");
             finish();
             return;
         }
@@ -87,7 +91,7 @@ public class QRScannerActivity extends AppCompatActivity {
         tvTimestamp = findViewById(R.id.tvTimestamp);
         btnDone = findViewById(R.id.btnDone);
 
-        // Set up click listeners - make sure each of these buttons exists in your layout
+        // Set up click listeners
         btnClose.setOnClickListener(v -> finish());
         btnTorch.setOnClickListener(v -> toggleTorch());
         btnDone.setOnClickListener(v -> finish());
@@ -133,11 +137,98 @@ public class QRScannerActivity extends AppCompatActivity {
     }
 
     private void processScanResult(String scanContent) {
+        try {
+            // Parse QR code content
+            JSONObject jsonObject = new JSONObject(scanContent);
+
+            // Extract course ID if available
+            String courseId = null;
+            if (jsonObject.has("courseId")) {
+                courseId = jsonObject.getString("courseId");
+            }
+
+            // If courseId is not in the QR content, extract it from the session
+            if (courseId == null && jsonObject.has("sessionId")) {
+                String sessionId = jsonObject.getString("sessionId");
+                courseId = getSessionCourseId(sessionId);
+            }
+
+            // If we have a courseId, check enrollment before marking attendance
+            if (courseId != null) {
+                checkEnrollmentAndMarkAttendance(scanContent, courseId);
+            } else {
+                // If we still couldn't get courseId, proceed with attendance marking
+                // This is a fallback for compatibility with older QR codes
+                markAttendance(scanContent);
+            }
+
+        } catch (Exception e) {
+            scanComplete = false;
+            barcodeView.resume();
+            UIHelper.showErrorDialog(this, "Error", "Invalid QR code format: " + e.getMessage());
+        }
+    }
+
+    private String getSessionCourseId(String sessionId) {
+        // This is a synchronous method to get courseId from sessionId
+        // In a real app, you might want to make this asynchronous
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        final String[] courseId = {null};
+
+        try {
+            DocumentSnapshot sessionDoc = db.collection("sessions").document(sessionId)
+                    .get()
+                    .getResult();
+
+            if (sessionDoc.exists()) {
+                courseId[0] = sessionDoc.getString("courseId");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting session data: " + e.getMessage());
+        }
+
+        return courseId[0];
+    }
+
+    private void checkEnrollmentAndMarkAttendance(String scanContent, String courseId) {
+        // Check if student is enrolled in the course
+        courseRepository.isStudentEnrolled(courseId, currentStudent.getUserId(),
+                isEnrolled -> {
+                    if (isEnrolled) {
+                        // Student is enrolled, proceed with marking attendance
+                        markAttendance(scanContent);
+                    } else {
+                        // Student is not enrolled
+                        runOnUiThread(() -> {
+                            UIHelper.showErrorDialog(this, "Not Enrolled",
+                                    "You are not enrolled in this course. Please enroll before marking attendance.");
+
+                            // Ask if they want to go to enrollment screen
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Enroll Now?")
+                                    .setMessage("Would you like to go to the course enrollment screen?")
+                                    .setPositiveButton("Yes", (dialog, which) -> {
+                                        // Open CourseEnrollmentActivity
+                                        // navigateToCourseEnrollment();
+                                        finish();
+                                    })
+                                    .setNegativeButton("No", (dialog, which) -> {
+                                        // Resume scanning
+                                        scanComplete = false;
+                                        barcodeView.resume();
+                                    })
+                                    .show();
+                        });
+                    }
+                });
+    }
+
+    private void markAttendance(String scanContent) {
         // Create a simple location data (in a real app, you would use device location)
         AttendanceRecord.LocationData location = new AttendanceRecord.LocationData(
                 0.0, 0.0, "Unknown Location");
 
-        Log.d("QR_SCAN_DEBUG", "Scanned content: " + scanContent);
+        Log.d(TAG, "Scanned content: " + scanContent);
 
         // Mark attendance in Firebase
         attendanceRepository.markAttendance(scanContent, currentStudent.getUserId(), location,
@@ -161,8 +252,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     public void onFailure(String errorMessage) {
                         // Show error message and resume scanning after delay
                         runOnUiThread(() -> {
-                            Toast.makeText(QRScannerActivity.this,
-                                    "Error: " + errorMessage, Toast.LENGTH_LONG).show();
+                            UIHelper.showErrorDialog(QRScannerActivity.this, "Error", errorMessage);
 
                             // Resume scanning after a delay
                             scanComplete = false;
@@ -171,7 +261,6 @@ public class QRScannerActivity extends AppCompatActivity {
                     }
                 });
     }
-
 
     private void fetchSessionDetails(String sessionId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -233,7 +322,6 @@ public class QRScannerActivity extends AppCompatActivity {
         });
     }
 
-
     private void toggleTorch() {
         if (barcodeView != null) {
             if (torchOn) {
@@ -252,7 +340,8 @@ public class QRScannerActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startScanning();
             } else {
-                Toast.makeText(this, "Camera permission is required to scan QR codes", Toast.LENGTH_LONG).show();
+                UIHelper.showErrorDialog(this, "Permission Required",
+                        "Camera permission is required to scan QR codes");
                 finish();
             }
         }
@@ -270,60 +359,6 @@ public class QRScannerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         barcodeView.pause();
-    }
-
-    private void debugScanQR(String qrContent) {
-        Log.d("QR_SCAN_DEBUG", "Scanning QR content: " + qrContent);
-
-        try {
-            // Parse the JSON to see what we're getting
-            JSONObject jsonObject = new JSONObject(qrContent);
-            String qrCodeId = jsonObject.optString("qrCodeId", "missing");
-            String sessionId = jsonObject.optString("sessionId", "missing");
-
-            Log.d("QR_SCAN_DEBUG", "Parsed QR code ID: " + qrCodeId);
-            Log.d("QR_SCAN_DEBUG", "Parsed session ID: " + sessionId);
-
-            // Verify this QR code exists in Firestore
-            FirebaseFirestore.getInstance().collection("qr_codes")
-                    .document(qrCodeId)
-                    .get()
-                    .addOnSuccessListener(doc -> {
-                        if (doc.exists()) {
-                            Log.d("QR_SCAN_DEBUG", "QR code found in database!");
-                            // Continue with attendance marking
-                            AttendanceRecord.LocationData location = new AttendanceRecord.LocationData(0.0, 0.0, "Debug Location");
-                            attendanceRepository.markAttendance(qrContent, currentStudent.getUserId(), location,
-                                    new AttendanceRepository.OnAttendanceListener() {
-                                        @Override
-                                        public void onSuccess(String message) {
-                                            Log.d("QR_SCAN_DEBUG", "Attendance marked successfully: " + message);
-                                            showSuccessOverlay("Success!", "Debug Attendance", new Date());
-                                        }
-
-                                        @Override
-                                        public void onFailure(String errorMessage) {
-                                            Log.e("QR_SCAN_DEBUG", "Attendance marking failed: " + errorMessage);
-                                            Toast.makeText(QRScannerActivity.this,
-                                                    "Error: " + errorMessage, Toast.LENGTH_LONG).show();
-                                        }
-                                    });
-                        } else {
-                            Log.e("QR_SCAN_DEBUG", "QR code NOT found in database!");
-                            Toast.makeText(QRScannerActivity.this,
-                                    "QR code not found in database. ID: " + qrCodeId, Toast.LENGTH_LONG).show();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("QR_SCAN_DEBUG", "Error checking QR code: " + e.getMessage());
-                        Toast.makeText(QRScannerActivity.this,
-                                "Error checking QR code: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    });
-
-        } catch (Exception e) {
-            Log.e("QR_SCAN_DEBUG", "Error parsing QR content: " + e.getMessage());
-            Toast.makeText(this, "Invalid QR code format: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
     }
 
     private void showTestQRSelection() {
@@ -344,7 +379,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     progressDialog.dismiss();
 
                     if (querySnapshot.isEmpty()) {
-                        Toast.makeText(this, "No QR codes found", Toast.LENGTH_SHORT).show();
+                        UIHelper.showErrorToast(this, "No QR codes found");
                         return;
                     }
 
@@ -426,8 +461,7 @@ public class QRScannerActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     progressDialog.dismiss();
-                    Toast.makeText(this, "Error fetching QR codes: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
+                    UIHelper.showErrorToast(this, "Error fetching QR codes: " + e.getMessage());
                 });
     }
 
@@ -456,8 +490,7 @@ public class QRScannerActivity extends AppCompatActivity {
             if (selectedQRContent != null) {
                 processScanResult(selectedQRContent);
             } else {
-                Toast.makeText(QRScannerActivity.this,
-                        "Error: QR content is null", Toast.LENGTH_SHORT).show();
+                UIHelper.showErrorToast(QRScannerActivity.this, "Error: QR content is null");
             }
         });
 
