@@ -380,18 +380,82 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
         showEditCourseDialog(course);
     }
 
+//    @Override
+//    public void onDeleteCourseClick(Course course, int position) {
+//        showDeleteConfirmationDialog(course);
+//    }
+
     @Override
-    public void onDeleteCourseClick(Course course, int position) {
-        showDeleteConfirmationDialog(course);
+    public void onToggleActiveStatusClick(Course course, int position) {
+        showToggleActiveConfirmationDialog(course);
+    }
+
+    private void showToggleActiveConfirmationDialog(Course course) {
+        String title, message, buttonText;
+
+        if (course.isActive()) {
+            title = "Deactivate Course";
+            message = "Are you sure you want to deactivate this course? Students won't be able to enroll or mark attendance for inactive courses.";
+            buttonText = "Deactivate";
+        } else {
+            title = "Reactivate Course";
+            message = "Do you want to reactivate this course? This will make it available for enrollment and attendance again.";
+            buttonText = "Reactivate";
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(buttonText, (dialog, which) -> toggleCourseActive(course))
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showDeleteConfirmationDialog(Course course) {
+        String title, message, buttonText;
+
+        if (course.isActive()) {
+            title = "Deactivate Course";
+            message = "Are you sure you want to deactivate this course? Students won't be able to enroll or mark attendance for inactive courses.";
+            buttonText = "Deactivate";
+        } else {
+            title = "Reactivate Course";
+            message = "Do you want to reactivate this course? This will make it available for enrollment and attendance again.";
+            buttonText = "Reactivate";
+        }
+
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Delete Course")
-                .setMessage("Are you sure you want to delete this course? This action cannot be undone.")
-                .setPositiveButton("Delete", (dialog, which) -> deleteCourse(course))
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(buttonText, (dialog, which) -> toggleCourseActive(course))
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void toggleCourseActive(Course course) {
+        // Toggle the active state
+        course.setActive(!course.isActive());
+
+        // Update the course in Firebase
+        courseRepository.updateCourse(course, new CourseRepository.OnCompleteListener() {
+            @Override
+            public void onSuccess(String id) {
+                String message = course.isActive() ?
+                        "Course reactivated successfully" :
+                        "Course deactivated successfully";
+
+                Toast.makeText(ManageCoursesActivity.this, message, Toast.LENGTH_SHORT).show();
+
+                // Refresh the course list
+                courseRepository.fetchCoursesByInstructor(currentInstructor.getUserId());
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(ManageCoursesActivity.this,
+                        "Failed to update course: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void deleteCourse(Course course) {

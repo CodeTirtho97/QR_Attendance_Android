@@ -16,8 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.AttendanceRecord;
 import com.example.qrattendance.data.model.Student;
-import com.example.qrattendance.data.repository.AttendanceRepository;
 import com.example.qrattendance.util.SessionManager;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +36,7 @@ public class MyAttendanceActivity extends AppCompatActivity {
     private RecyclerView recyclerViewAttendance;
     private ProgressBar progressBar;
 
-    private AttendanceRepository attendanceRepository;
+    private FirebaseFirestore db;
     private Student currentStudent;
     private MyAttendanceAdapter attendanceAdapter;
 
@@ -46,6 +49,9 @@ public class MyAttendanceActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_attendance);
 
+        // Initialize Firestore
+        db = FirebaseFirestore.getInstance();
+
         // Get current student from session
         currentStudent = (Student) SessionManager.getInstance(this).getUserData();
         if (currentStudent == null) {
@@ -54,13 +60,10 @@ public class MyAttendanceActivity extends AppCompatActivity {
             return;
         }
 
-        // Initialize repository
-        attendanceRepository = AttendanceRepository.getInstance();
-
         // Initialize views
         initViews();
         setupRecyclerView();
-        loadStudentAttendance();
+        loadAttendanceRecords();
     }
 
     private void initViews() {
@@ -89,106 +92,112 @@ public class MyAttendanceActivity extends AppCompatActivity {
         recyclerViewAttendance.setAdapter(attendanceAdapter);
     }
 
-    private void loadStudentAttendance() {
+    private void loadAttendanceRecords() {
         progressBar.setVisibility(View.VISIBLE);
         tvNoAttendance.setVisibility(View.GONE);
         recyclerViewAttendance.setVisibility(View.GONE);
 
-        // Observe attendance records
-        attendanceRepository.getAttendanceRecords().observe(this, records -> {
-            progressBar.setVisibility(View.GONE);
+        // Direct Firestore query without using repository for more control
+        db.collection("attendance_records")
+                .whereEqualTo("studentId", currentStudent.getUserId())
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<AttendanceRecord> records = new ArrayList<>();
 
-            if (records.isEmpty()) {
-                tvNoAttendance.setVisibility(View.VISIBLE);
-                recyclerViewAttendance.setVisibility(View.GONE);
-            } else {
-                // Fetch additional information for each record (course and session names)
-                fetchAdditionalInfo(records);
-            }
-        });
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        progressBar.setVisibility(View.GONE);
+                        tvNoAttendance.setVisibility(View.VISIBLE);
+                        recyclerViewAttendance.setVisibility(View.GONE);
+                        return;
+                    }
 
-        // Observe errors
-        attendanceRepository.getErrorMessage().observe(this, errorMsg -> {
-            if (errorMsg != null && !errorMsg.isEmpty()) {
-                Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
-                progressBar.setVisibility(View.GONE);
-            }
-        });
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        AttendanceRecord record = document.toObject(AttendanceRecord.class);
+                        record.setRecordId(document.getId());
+                        records.add(record);
 
-        // Fetch attendance records for this student
-        attendanceRepository.fetchAttendanceByStudent(currentStudent.getUserId());
+                        // Fetch course and session info for each record
+                        fetchCourseInfo(record.getCourseId());
+                        fetchSessionInfo(record.getSessionId());
+                    }
+
+                    // Now we have all the attendance records
+                    progressBar.setVisibility(View.GONE);
+
+                    if (records.isEmpty()) {
+                        tvNoAttendance.setVisibility(View.VISIBLE);
+                        recyclerViewAttendance.setVisibility(View.GONE);
+                    } else {
+                        tvNoAttendance.setVisibility(View.GONE);
+                        recyclerViewAttendance.setVisibility(View.VISIBLE);
+                        attendanceAdapter.updateAttendanceRecords(records);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    tvNoAttendance.setText("Error loading attendance: " + e.getMessage());
+                    tvNoAttendance.setVisibility(View.VISIBLE);
+                    recyclerViewAttendance.setVisibility(View.GONE);
+                });
     }
 
-    // Fetch course and session information for each attendance record
-    private void fetchAdditionalInfo(List<AttendanceRecord> records) {
-        courseNames.clear();
-        sessionTitles.clear();
-
-        // We'll count how many async operations we need to complete
-        final int[] totalOperations = {records.size() * 2}; // Course + Session for each record
-        final int[] completedOperations = {0};
-
-        for (AttendanceRecord record : records) {
-            // Fetch course info for each unique courseId
-            String courseId = record.getCourseId();
-            if (!courseNames.containsKey(courseId)) {
-                fetchCourseInfo(courseId, () -> {
-                    completedOperations[0]++;
-                    checkIfAllCompleted(records, totalOperations[0], completedOperations[0]);
-                });
-            } else {
-                completedOperations[0]++;
-            }
-
-            // Fetch session info for each unique sessionId
-            String sessionId = record.getSessionId();
-            if (!sessionTitles.containsKey(sessionId)) {
-                fetchSessionInfo(sessionId, () -> {
-                    completedOperations[0]++;
-                    checkIfAllCompleted(records, totalOperations[0], completedOperations[0]);
-                });
-            } else {
-                completedOperations[0]++;
-            }
-        }
-
-        // In case there are no records or all information is already fetched
-        checkIfAllCompleted(records, totalOperations[0], completedOperations[0]);
-    }
-
-    private void fetchCourseInfo(String courseId, Runnable onComplete) {
-        if (courseId == null) {
-            courseNames.put("null", "Unknown Course");
-            onComplete.run();
+    private void fetchCourseInfo(String courseId) {
+        if (courseId == null || courseNames.containsKey(courseId)) {
             return;
         }
 
-        attendanceRepository.fetchCourseInfo(courseId, (courseInfo, success) -> {
-            courseNames.put(courseId, courseInfo);
-            onComplete.run();
-        });
+        // Set a placeholder while fetching
+        courseNames.put(courseId, "Loading...");
+
+        db.collection("courses").document(courseId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String courseCode = documentSnapshot.getString("courseCode");
+                        String courseName = documentSnapshot.getString("courseName");
+                        String displayName;
+
+                        if (courseCode != null && courseName != null) {
+                            displayName = courseCode + " - " + courseName;
+                        } else if (courseName != null) {
+                            displayName = courseName;
+                        } else if (courseCode != null) {
+                            displayName = courseCode;
+                        } else {
+                            displayName = "Unknown Course";
+                        }
+
+                        courseNames.put(courseId, displayName);
+                        attendanceAdapter.notifyDataSetChanged();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    courseNames.put(courseId, "Unknown Course");
+                    attendanceAdapter.notifyDataSetChanged();
+                });
     }
 
-    private void fetchSessionInfo(String sessionId, Runnable onComplete) {
-        if (sessionId == null) {
-            sessionTitles.put("null", "Unknown Session");
-            onComplete.run();
+    private void fetchSessionInfo(String sessionId) {
+        if (sessionId == null || sessionTitles.containsKey(sessionId)) {
             return;
         }
 
-        attendanceRepository.fetchSessionInfo(sessionId, (sessionInfo, success) -> {
-            sessionTitles.put(sessionId, sessionInfo);
-            onComplete.run();
-        });
-    }
+        // Set a placeholder while fetching
+        sessionTitles.put(sessionId, "Loading...");
 
-    private void checkIfAllCompleted(List<AttendanceRecord> records, int total, int completed) {
-        if (completed >= total) {
-            // All info has been fetched, update the adapter
-            tvNoAttendance.setVisibility(View.GONE);
-            recyclerViewAttendance.setVisibility(View.VISIBLE);
-            attendanceAdapter.updateAttendanceRecords(records);
-        }
+        db.collection("sessions").document(sessionId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String title = documentSnapshot.getString("title");
+                        sessionTitles.put(sessionId, title != null ? title : "Unnamed Session");
+                        attendanceAdapter.notifyDataSetChanged();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    sessionTitles.put(sessionId, "Unknown Session");
+                    attendanceAdapter.notifyDataSetChanged();
+                });
     }
 
     @Override

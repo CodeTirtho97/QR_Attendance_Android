@@ -1,6 +1,7 @@
 package com.example.qrattendance.ui.student;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -19,6 +20,7 @@ import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.CourseRepository;
 import com.example.qrattendance.util.SessionManager;
 import com.example.qrattendance.util.UIHelper;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -127,6 +129,17 @@ public class CourseEnrollmentActivity extends AppCompatActivity implements Cours
                 // Update the adapter to reflect the change
                 courseAdapter.updateEnrolledCourses(currentStudent.getEnrolledCourseIds());
 
+                // Additionally, update Firestore directly
+                FirebaseFirestore.getInstance().collection("users")
+                        .document(currentStudent.getUserId())
+                        .update("enrolledCourseIds", currentStudent.getEnrolledCourseIds())
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d("CourseEnrollment", "Firestore updated successfully");
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("CourseEnrollment", "Error updating Firestore", e);
+                        });
+
                 UIHelper.showSuccessToast(CourseEnrollmentActivity.this,
                         "Successfully enrolled in " + course.getCourseName());
             }
@@ -155,6 +168,17 @@ public class CourseEnrollmentActivity extends AppCompatActivity implements Cours
 
                 // Update the adapter to reflect the change
                 courseAdapter.updateEnrolledCourses(currentStudent.getEnrolledCourseIds());
+
+                // Additionally, update Firestore directly
+                FirebaseFirestore.getInstance().collection("users")
+                        .document(currentStudent.getUserId())
+                        .update("enrolledCourseIds", currentStudent.getEnrolledCourseIds())
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d("CourseEnrollment", "Firestore updated successfully");
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e("CourseEnrollment", "Error updating Firestore", e);
+                        });
 
                 UIHelper.showSuccessToast(CourseEnrollmentActivity.this,
                         "Successfully unenrolled from " + course.getCourseName());

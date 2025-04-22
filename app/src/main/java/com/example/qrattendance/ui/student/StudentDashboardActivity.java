@@ -16,6 +16,7 @@ import androidx.cardview.widget.CardView;
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.repository.AuthRepository;
+import com.example.qrattendance.ui.common.ProfileActivity;
 import com.example.qrattendance.util.SessionManager;
 import com.example.qrattendance.util.UIHelper;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -52,7 +53,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
         cardScanQr = findViewById(R.id.cardScanQr);
         cardMyAttendance = findViewById(R.id.cardMyAttendance);
         cardMyCourses = findViewById(R.id.cardMyCourses);
-        cardProfile = findViewById(R.id.cardProfile);
+        //cardProfile = findViewById(R.id.cardProfile);
         cardEnrollment = findViewById(R.id.cardEnrollment); // New enrollment card
 
         // FAB for scanning
@@ -70,7 +71,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
         cardScanQr.setOnClickListener(v -> openQRScanner());
         cardMyAttendance.setOnClickListener(v -> viewMyAttendance());
         cardMyCourses.setOnClickListener(v -> viewMyCourses());
-        cardProfile.setOnClickListener(v -> viewProfile());
+        //cardProfile.setOnClickListener(v -> viewProfile());
         cardEnrollment.setOnClickListener(v -> openCourseEnrollment());
         fabScanQr.setOnClickListener(v -> openQRScanner());
     }
@@ -87,14 +88,14 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     private void viewMyCourses() {
-        // For now, this just shows a toast message
-        UIHelper.showErrorToast(this, "My Courses feature coming soon");
+        Intent intent = new Intent(this, MyCoursesActivity.class);
+        startActivity(intent);
     }
 
-    private void viewProfile() {
-        // For now, this just shows a toast message
-        UIHelper.showErrorToast(this, "Profile feature coming soon");
-    }
+//    private void viewProfile() {
+//        // For now, this just shows a toast message
+//        UIHelper.showErrorToast(this, "Profile feature coming soon");
+//    }
 
     private void openCourseEnrollment() {
         // Open CourseEnrollmentActivity
@@ -132,7 +133,12 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        if (item.getItemId() == R.id.action_profile) {
+            // Open ProfileActivity
+            Intent intent = new Intent(this, ProfileActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (item.getItemId() == R.id.action_logout) {
             logout();
             return true;
         }

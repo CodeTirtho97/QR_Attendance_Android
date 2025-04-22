@@ -11,6 +11,7 @@ import com.example.qrattendance.data.model.Admin;
 import com.example.qrattendance.data.model.Instructor;
 import com.example.qrattendance.data.model.Student;
 import com.example.qrattendance.data.model.User;
+import com.example.qrattendance.data.repository.AttendanceRepository;
 import com.example.qrattendance.data.repository.AuthRepository;
 import com.example.qrattendance.ui.admin.AdminDashboardActivity;
 import com.example.qrattendance.ui.auth.LoginActivity;
@@ -34,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize authentication repository
         authRepository = AuthRepository.getInstance();
+
+        // Clean up expired QR codes
+        AttendanceRepository.getInstance().cleanupExpiredQRCodes();
 
         // Delay a bit to avoid black screen
         new Handler().postDelayed(() -> {

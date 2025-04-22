@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tvCourseCode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CS101"
+            android:textColor="@color/purple_700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvCourseName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Introduction to Computer Science"
+            android:textColor="@color/black"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvDepartment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawablePadding="8dp"
+                android:text="Department: Computer Science"
+                android:textSize="14sp"
+                app:drawableStartCompat="@drawable/ic_course"
+                app:drawableTint="@color/grey_600" />
+
+            <TextView
+                android:id="@+id/tvSemester"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:drawablePadding="8dp"
+                android:text="Semester: Fall 2023"
+                android:textSize="14sp"
+                app:drawableStartCompat="@drawable/ic_logs"
+                app:drawableTint="@color/grey_600" />
+
+            <TextView
+                android:id="@+id/tvCredits"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:drawablePadding="8dp"
+                android:text="Credits: 3"
+                android:textSize="14sp"
+                app:drawableStartCompat="@drawable/ic_settings"
+                app:drawableTint="@color/grey_600" />
+
+            <TextView
+                android:id="@+id/tvInstructor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:drawablePadding="8dp"
+                android:text="Instructor: Dr. Jane Smith"
+                android:textSize="14sp"
+                app:drawableStartCompat="@drawable/ic_instructor"
+                app:drawableTint="@color/grey_600" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

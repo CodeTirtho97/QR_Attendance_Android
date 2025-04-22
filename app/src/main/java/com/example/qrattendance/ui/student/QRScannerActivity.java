@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -466,8 +467,48 @@ public class QRScannerActivity extends AppCompatActivity {
     }
 
     private void showQRSelectionDialog(AlertDialog.Builder builder, List<Map<String, String>> qrInfoList) {
+        // Filter out expired QR codes
+        Date now = new Date();
+        List<Map<String, String>> activeQRs = new ArrayList<>();
+
+        for (Map<String, String> qrInfo : qrInfoList) {
+            // If there's an expiry time in the content
+            String content = qrInfo.get("content");
+            if (content != null) {
+                try {
+                    JSONObject jsonObject = new JSONObject(content);
+                    if (jsonObject.has("expiresAt")) {
+                        long expiryTime = jsonObject.getLong("expiresAt");
+                        if (expiryTime > now.getTime()) {
+                            // Only add if not expired
+                            activeQRs.add(qrInfo);
+                        }
+                    } else {
+                        // No expiry time, just add it
+                        activeQRs.add(qrInfo);
+                    }
+                } catch (Exception e) {
+                    // If parsing fails, just add it
+                    activeQRs.add(qrInfo);
+                }
+            } else {
+                // If no content, just add it
+                activeQRs.add(qrInfo);
+            }
+        }
+
+        // Remove duplicates by courseInfo and sessionTitle
+        Map<String, Map<String, String>> uniqueQRs = new HashMap<>();
+        for (Map<String, String> qr : activeQRs) {
+            String key = qr.get("courseInfo") + "|" + qr.get("sessionTitle");
+            uniqueQRs.put(key, qr);
+        }
+
+        // Convert back to list
+        activeQRs = new ArrayList<>(uniqueQRs.values());
+
         // Sort the list - active QR codes first, then by course code
-        Collections.sort(qrInfoList, (a, b) -> {
+        Collections.sort(activeQRs, (a, b) -> {
             // Active status comparison
             int statusCompare = b.get("isActive").compareTo(a.get("isActive"));
             if (statusCompare != 0) return statusCompare;
@@ -477,16 +518,22 @@ public class QRScannerActivity extends AppCompatActivity {
         });
 
         // Create description strings
-        String[] qrDescriptions = new String[qrInfoList.size()];
-        for (int i = 0; i < qrInfoList.size(); i++) {
-            Map<String, String> info = qrInfoList.get(i);
+        String[] qrDescriptions = new String[activeQRs.size()];
+        for (int i = 0; i < activeQRs.size(); i++) {
+            Map<String, String> info = activeQRs.get(i);
             qrDescriptions[i] = info.get("courseInfo") + "\n" +
                     info.get("sessionTitle") + " (" + info.get("isActive") + ")";
         }
 
+        if (qrDescriptions.length == 0) {
+            Toast.makeText(QRScannerActivity.this, "No active QR codes found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<Map<String, String>> finalActiveQRs = activeQRs;
         builder.setItems(qrDescriptions, (dialog, which) -> {
             // Process the selected QR code
-            String selectedQRContent = qrInfoList.get(which).get("content");
+            String selectedQRContent = finalActiveQRs.get(which).get("content");
             if (selectedQRContent != null) {
                 processScanResult(selectedQRContent);
             } else {

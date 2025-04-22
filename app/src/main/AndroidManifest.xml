@@ -106,5 +106,15 @@
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
+        <activity
+            android:name=".ui.student.MyCoursesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
+        <activity
+            android:name=".ui.common.ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
     </application>
 </manifest>

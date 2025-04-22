@@ -26,6 +26,9 @@ import com.example.qrattendance.ui.student.StudentDashboardActivity;
 import com.example.qrattendance.util.SessionManager;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.List;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -174,6 +177,37 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        // Refresh student enrolled courses if it's a student
+        if (user instanceof Student) {
+            FirebaseFirestore.getInstance().collection("users").document(user.getUserId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            List<String> enrolledCourseIds = (List<String>) documentSnapshot.get("enrolledCourseIds");
+                            if (enrolledCourseIds != null) {
+                                ((Student) user).setEnrolledCourseIds(enrolledCourseIds);
+                                // Update the user in session manager
+                                SessionManager.getInstance(this).saveUserSession(user);
+                            }
+
+                            // Continue with redirection
+                            continueRedirection(user);
+                        } else {
+                            // Just continue with redirection
+                            continueRedirection(user);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        // Just continue with redirection
+                        continueRedirection(user);
+                    });
+        } else {
+            // For non-student users, just redirect
+            continueRedirection(user);
+        }
+    }
+
+    private void continueRedirection(User user) {
         Intent intent;
 
         // Check user role and redirect accordingly

@@ -137,11 +137,10 @@ public class CourseRepository {
     public void fetchSessionsByCourse(String courseId) {
         isLoading.setValue(true);
 
-        // Make sure the query is properly filtering by courseId
+        // Remove the orderBy clause to avoid index requirements
         firestore.collection("sessions")
-                .whereEqualTo("courseId", courseId) // This is crucial - ensure it's being applied correctly
-                .orderBy("startTime", Query.Direction.DESCENDING)
-                .get() // Use get() instead of addSnapshotListener for one-time loading
+                .whereEqualTo("courseId", courseId)
+                .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Session> sessions = new ArrayList<>();
 
@@ -154,8 +153,14 @@ public class CourseRepository {
                         }
                     }
 
-                    Log.d("CourseRepository", "Fetching sessions for courseId: " + courseId);
-                    Log.d("CourseRepository", "Found " + sessions.size() + " sessions");
+                    // Sort locally instead of in Firebase query
+                    Collections.sort(sessions, (s1, s2) -> {
+                        if (s1.getStartTime() == null && s2.getStartTime() == null) return 0;
+                        if (s1.getStartTime() == null) return 1;
+                        if (s2.getStartTime() == null) return -1;
+                        // Descending order (newest first)
+                        return s2.getStartTime().compareTo(s1.getStartTime());
+                    });
 
                     sessionsLiveData.setValue(sessions);
                     isLoading.setValue(false);

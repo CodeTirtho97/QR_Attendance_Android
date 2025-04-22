@@ -24,7 +24,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         void onCourseClick(Course course, int position);
         void onViewAttendanceClick(Course course, int position);
         void onManageCourseClick(Course course, int position);
-        void onDeleteCourseClick(Course course, int position);
+        void onToggleActiveStatusClick(Course course, int position); // Renamed from onDeleteCourseClick
     }
 
     public CourseAdapter(List<Course> courses, CourseClickListener listener) {
@@ -64,7 +64,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         private final TextView tvStudentCount;
         private final Button btnViewAttendance;
         private final Button btnManageCourse;
-        private final ImageButton btnDeleteCourse;
+        private final ImageButton btnToggleActiveStatus;
 
         public CourseViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -75,7 +75,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             tvStudentCount = itemView.findViewById(R.id.tvStudentCount);
             btnViewAttendance = itemView.findViewById(R.id.btnViewAttendance);
             btnManageCourse = itemView.findViewById(R.id.btnManageCourse);
-            btnDeleteCourse = itemView.findViewById(R.id.btnDeleteCourse);
+            btnToggleActiveStatus = itemView.findViewById(R.id.btnToggleActiveStatus);
         }
 
         public void bind(Course course, int position) {
@@ -110,9 +110,27 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
                 }
             });
 
-            btnDeleteCourse.setOnClickListener(v -> {
+//            // Change delete icon and functionality to "Make Inactive"
+//            btnDeleteCourse.setContentDescription("Make course inactive");
+//            // You can change the icon if you want, or keep the same one
+//            btnDeleteCourse.setOnClickListener(v -> {
+//                if (listener != null) {
+//                    listener.onDeleteCourseClick(course, position);
+//                }
+//            });
+
+            // Show active/inactive status
+            if (course.isActive()) {
+                btnToggleActiveStatus.setImageResource(R.drawable.ic_visibility);
+                btnToggleActiveStatus.setContentDescription("Deactivate course");
+            } else {
+                btnToggleActiveStatus.setImageResource(R.drawable.ic_visibility_off);
+                btnToggleActiveStatus.setContentDescription("Activate course");
+            }
+
+            btnToggleActiveStatus.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onDeleteCourseClick(course, position);
+                    listener.onToggleActiveStatusClick(course, position);
                 }
             });
         }

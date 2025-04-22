@@ -15,7 +15,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Instructor;
+import com.example.qrattendance.data.repository.AttendanceRepository;
 import com.example.qrattendance.data.repository.AuthRepository;
+import com.example.qrattendance.ui.common.ProfileActivity;
 import com.example.qrattendance.util.SessionManager;
 
 public class InstructorDashboardActivity extends AppCompatActivity {
@@ -33,6 +35,9 @@ public class InstructorDashboardActivity extends AppCompatActivity {
         // Initialize session manager and auth repository
         sessionManager = SessionManager.getInstance(this);
         authRepository = AuthRepository.getInstance();
+
+        // Clean up expired QR codes
+        AttendanceRepository.getInstance().cleanupExpiredQRCodes();
 
         // Initialize UI components
         initViews();
@@ -109,7 +114,12 @@ public class InstructorDashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        if (item.getItemId() == R.id.action_profile) {
+            // Open ProfileActivity
+            Intent intent = new Intent(this, ProfileActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (item.getItemId() == R.id.action_logout) {
             logout();
             return true;
         }

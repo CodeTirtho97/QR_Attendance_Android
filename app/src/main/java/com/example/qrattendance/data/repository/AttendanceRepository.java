@@ -20,6 +20,7 @@ import com.google.firebase.firestore.Transaction;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -150,27 +151,35 @@ public class AttendanceRepository {
     public void fetchAttendanceByStudent(String studentId) {
         isLoading.setValue(true);
 
+        // Remove the orderBy to avoid composite index requirement
         firestore.collection(ATTENDANCE_COLLECTION)
                 .whereEqualTo("studentId", studentId)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .addSnapshotListener((snapshots, e) -> {
-                    if (e != null) {
-                        errorMessage.setValue("Failed to load attendance records: " + e.getMessage());
-                        isLoading.setValue(false);
-                        return;
-                    }
-
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<AttendanceRecord> records = new ArrayList<>();
 
-                    if (snapshots != null) {
-                        for (QueryDocumentSnapshot document : snapshots) {
-                            AttendanceRecord record = document.toObject(AttendanceRecord.class);
+                    for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                        AttendanceRecord record = document.toObject(AttendanceRecord.class);
+                        if (record != null) {
                             record.setRecordId(document.getId());
                             records.add(record);
                         }
                     }
 
+                    // Sort locally instead of in the query
+                    Collections.sort(records, (r1, r2) -> {
+                        if (r1.getTimestamp() == null && r2.getTimestamp() == null) return 0;
+                        if (r1.getTimestamp() == null) return 1;
+                        if (r2.getTimestamp() == null) return -1;
+                        // Descending order (newest first)
+                        return r2.getTimestamp().compareTo(r1.getTimestamp());
+                    });
+
                     attendanceRecordsLiveData.setValue(records);
+                    isLoading.setValue(false);
+                })
+                .addOnFailureListener(e -> {
+                    errorMessage.setValue("Failed to load attendance records: " + e.getMessage());
                     isLoading.setValue(false);
                 });
     }
@@ -719,6 +728,37 @@ public class AttendanceRepository {
                         }
                     });
         }
+    }
+
+
+    /**
+     * Clean up expired QR codes
+     */
+    public void cleanupExpiredQRCodes() {
+        Date now = new Date();
+
+        firestore.collection(QRCODES_COLLECTION)
+                .whereLessThan("expiresAt", now)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        return;
+                    }
+
+                    int count = 0;
+                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        // Deactivate the QR code
+                        doc.getReference().update("isActive", false)
+                                .addOnSuccessListener(aVoid -> Log.d(TAG, "QR code deactivated: " + doc.getId()))
+                                .addOnFailureListener(e -> Log.e(TAG, "Error deactivating QR code: " + e.getMessage()));
+                        count++;
+                    }
+
+                    Log.d(TAG, "Deactivated " + count + " expired QR codes");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error cleaning up expired QR codes: " + e.getMessage());
+                });
     }
 
 
