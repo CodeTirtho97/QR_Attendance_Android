@@ -57,11 +57,67 @@ public class ViewAttendanceActivity extends AppCompatActivity implements Session
             return;
         }
 
+        // Get the courseId from intent if available
+        String courseId = getIntent().getStringExtra("courseId");
+
         // Initialize views
         initViews();
         setupRecyclerView();
-        loadInstructorCourses();
+
+        // If courseId is provided, load that course's sessions directly
+        if (courseId != null && !courseId.isEmpty()) {
+            // Find the course in instructorCourses and set the spinner selection
+            loadInstructorCourses(courseId);
+        } else {
+            // Otherwise, load all instructor courses
+            loadInstructorCourses(null);
+        }
     }
+
+    private void loadInstructorCourses(String selectedCourseId) {
+        progressBar.setVisibility(View.VISIBLE);
+
+        // Observe courses
+        courseRepository.getCourses().observe(this, courses -> {
+            progressBar.setVisibility(View.GONE);
+
+            if (courses.isEmpty()) {
+                Toast.makeText(this, "You don't have any courses yet", Toast.LENGTH_SHORT).show();
+            } else {
+                instructorCourses = courses;
+                setupCoursesSpinner();
+
+                // If a specific courseId was provided, select it in the spinner
+                if (selectedCourseId != null) {
+                    selectCourseInSpinner(selectedCourseId);
+                }
+            }
+        });
+
+        // Observe errors
+        courseRepository.getErrorMessage().observe(this, errorMsg -> {
+            if (errorMsg != null && !errorMsg.isEmpty()) {
+                Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
+                progressBar.setVisibility(View.GONE);
+            }
+        });
+
+        // Load the instructor's courses
+        courseRepository.fetchCoursesByInstructor(currentInstructor.getUserId());
+    }
+
+    // Add a method to select the course in the spinner
+    private void selectCourseInSpinner(String courseId) {
+        // Find the position of the course in the instructorCourses list
+        for (int i = 0; i < instructorCourses.size(); i++) {
+            if (instructorCourses.get(i).getCourseId().equals(courseId)) {
+                // Add 1 to account for "Select Course" item at position 0
+                spinnerCourses.setSelection(i + 1);
+                break;
+            }
+        }
+    }
+
 
     private void initViews() {
         toolbar = findViewById(R.id.toolbar);

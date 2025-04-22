@@ -1,5 +1,6 @@
 package com.example.qrattendance.ui.instructor;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -368,8 +369,10 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
 
     @Override
     public void onViewAttendanceClick(Course course, int position) {
-        // TODO: Implement view attendance
-        Toast.makeText(this, "View attendance coming soon", Toast.LENGTH_SHORT).show();
+        // Navigate to ViewAttendanceActivity with the course ID
+        Intent intent = new Intent(this, ViewAttendanceActivity.class);
+        intent.putExtra("courseId", course.getCourseId());
+        startActivity(intent);
     }
 
     @Override
