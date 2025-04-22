@@ -16,12 +16,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Admin;
 import com.example.qrattendance.data.repository.AuthRepository;
-import com.example.qrattendance.ui.auth.LoginActivity;
+import com.example.qrattendance.ui.common.ProfileActivity;
 import com.example.qrattendance.util.SessionManager;
 
 public class AdminDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
+    private TextView tvAdminId;
     private SessionManager sessionManager;
     private AuthRepository authRepository;
 
@@ -41,6 +42,7 @@ public class AdminDashboardActivity extends AppCompatActivity {
 
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeAdmin);
+        tvAdminId = findViewById(R.id.tvAdminId);
 
         // Find all clickable elements
         findViewById(R.id.cardManageUsers).setOnClickListener(v -> manageUsers());
@@ -58,8 +60,9 @@ public class AdminDashboardActivity extends AppCompatActivity {
     }
 
     private void manageUsers() {
-        // TODO: Open Manage Users activity
-        Toast.makeText(this, "Manage Users feature coming soon", Toast.LENGTH_SHORT).show();
+        // Navigate to ManageUsersActivity
+        Intent intent = new Intent(this, ManageUsersActivity.class);
+        startActivity(intent);
     }
 
     private void manageCourses() {
@@ -92,6 +95,10 @@ public class AdminDashboardActivity extends AppCompatActivity {
         if (admin != null) {
             String welcomeMessage = "Welcome, " + admin.getName() + "!";
             tvWelcome.setText(welcomeMessage);
+
+            String adminIdText = "ID: " + (admin.getAdminId() != null ?
+                    admin.getAdminId() : "Unknown");
+            tvAdminId.setText(adminIdText);
         }
     }
 
@@ -113,7 +120,12 @@ public class AdminDashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        if (item.getItemId() == R.id.action_profile) {
+            // Open ProfileActivity
+            Intent intent = new Intent(this, ProfileActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (item.getItemId() == R.id.action_logout) {
             logout();
             return true;
         }

@@ -116,5 +116,15 @@
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
+        <!-- Admin User Management Activities -->
+        <activity
+            android:name=".ui.admin.ManageUsersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+        <activity
+            android:name=".ui.admin.AddEditUserActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
     </application>
 </manifest>
