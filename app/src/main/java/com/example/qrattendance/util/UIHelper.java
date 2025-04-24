@@ -33,6 +33,21 @@ public class UIHelper {
     }
 
     /**
+     * Shows an information dialog with a title and message
+     * @param context The context
+     * @param title The dialog title
+     * @param message The information message
+     */
+    public static void showInfoDialog(Context context, String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(R.string.ok, null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
+    }
+
+    /**
      * Shows a confirmation dialog with a title and message
      * @param context The context
      * @param title The dialog title

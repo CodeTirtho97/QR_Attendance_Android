@@ -7,11 +7,13 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.example.qrattendance.R;
 import com.example.qrattendance.data.model.Admin;
@@ -23,8 +25,19 @@ public class AdminDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome;
     private TextView tvAdminId;
+    private TextView tvAdminType;
     private SessionManager sessionManager;
     private AuthRepository authRepository;
+
+    // Dashboard cards
+    private CardView cardManageUsers;
+    private CardView cardManageCourses;
+    private CardView cardSystemSettings;
+    private CardView cardReports;
+    private CardView cardLogs;
+    private CardView cardBackup;
+
+    private Admin currentAdmin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,27 +48,111 @@ public class AdminDashboardActivity extends AppCompatActivity {
         sessionManager = SessionManager.getInstance(this);
         authRepository = AuthRepository.getInstance();
 
+        // Get current admin
+        currentAdmin = (Admin) sessionManager.getUserData();
+        if (currentAdmin == null) {
+            Toast.makeText(this, "Session error. Please login again.", Toast.LENGTH_SHORT).show();
+            logout();
+            return;
+        }
+
         // Initialize UI components
         initViews();
         setupUserInfo();
+        setupDashboardAccess();
     }
 
     private void initViews() {
         tvWelcome = findViewById(R.id.tvWelcomeAdmin);
         tvAdminId = findViewById(R.id.tvAdminId);
+        tvAdminType = findViewById(R.id.tvAdminType);
 
-        // Find all clickable elements
-        findViewById(R.id.cardManageUsers).setOnClickListener(v -> manageUsers());
-        findViewById(R.id.cardManageCourses).setOnClickListener(v -> manageCourses());
-        findViewById(R.id.cardSystemSettings).setOnClickListener(v -> systemSettings());
-        findViewById(R.id.cardReports).setOnClickListener(v -> viewReports());
-        findViewById(R.id.cardLogs).setOnClickListener(v -> viewLogs());
-        findViewById(R.id.cardBackup).setOnClickListener(v -> backupRestore());
+        // Find all dashboard cards
+        cardManageUsers = findViewById(R.id.cardManageUsers);
+        cardManageCourses = findViewById(R.id.cardManageCourses);
+        cardSystemSettings = findViewById(R.id.cardSystemSettings);
+        cardReports = findViewById(R.id.cardReports);
+        cardLogs = findViewById(R.id.cardLogs);
+        cardBackup = findViewById(R.id.cardBackup);
+
+        // Set click listeners
+        cardManageUsers.setOnClickListener(v -> manageUsers());
+        cardManageCourses.setOnClickListener(v -> manageCourses());
+        cardSystemSettings.setOnClickListener(v -> systemSettings());
+        cardReports.setOnClickListener(v -> viewReports());
+        cardLogs.setOnClickListener(v -> viewLogs());
+        cardBackup.setOnClickListener(v -> backupRestore());
 
         // Set up toolbar
         setSupportActionBar(findViewById(R.id.toolbar));
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Admin Dashboard");
+        }
+    }
+
+    private void setupUserInfo() {
+        if (currentAdmin != null) {
+            String welcomeMessage = "Welcome, " + currentAdmin.getName() + "!";
+            tvWelcome.setText(welcomeMessage);
+
+            String adminIdText = "ID: " + (currentAdmin.getAdminId() != null ?
+                    currentAdmin.getAdminId() : "Unknown");
+            tvAdminId.setText(adminIdText);
+
+            // Display admin privilege level
+            Admin.AdminPrivilegeLevel privilegeLevel = currentAdmin.getPrivilegeLevel();
+            String adminTypeText = "";
+
+            switch (privilegeLevel) {
+                case SUPER_ADMIN:
+                    adminTypeText = "Super Admin";
+                    break;
+                case DEPARTMENT_ADMIN:
+                    adminTypeText = "Department Admin";
+                    break;
+                case COURSE_ADMIN:
+                    adminTypeText = "Course Admin";
+                    break;
+            }
+
+            tvAdminType.setText(adminTypeText);
+        }
+    }
+
+    private void setupDashboardAccess() {
+        if (currentAdmin == null) return;
+
+        Admin.AdminPrivilegeLevel privilegeLevel = currentAdmin.getPrivilegeLevel();
+
+        // All admin types can access Manage Users
+        cardManageUsers.setVisibility(View.VISIBLE);
+
+        // All admin types can access Manage Courses
+        cardManageCourses.setVisibility(View.VISIBLE);
+
+        // System Settings - Only Department Admin and Super Admin
+        if (privilegeLevel == Admin.AdminPrivilegeLevel.SUPER_ADMIN ||
+                privilegeLevel == Admin.AdminPrivilegeLevel.DEPARTMENT_ADMIN) {
+            cardSystemSettings.setVisibility(View.VISIBLE);
+        } else {
+            cardSystemSettings.setVisibility(View.GONE);
+        }
+
+        // Reports - All admin types
+        cardReports.setVisibility(View.VISIBLE);
+
+        // Logs - Only Super Admin
+        if (privilegeLevel == Admin.AdminPrivilegeLevel.SUPER_ADMIN) {
+            cardLogs.setVisibility(View.VISIBLE);
+        } else {
+            cardLogs.setVisibility(View.GONE);
+        }
+
+        // Backup & Restore - Only Super Admin
+        if (privilegeLevel == Admin.AdminPrivilegeLevel.SUPER_ADMIN) {
+            cardBackup.setVisibility(View.VISIBLE);
+        } else {
+            cardBackup.setVisibility(View.GONE);
         }
     }
 
@@ -66,13 +163,20 @@ public class AdminDashboardActivity extends AppCompatActivity {
     }
 
     private void manageCourses() {
-        // TODO: Open Manage Courses activity
-        Toast.makeText(this, "Manage Courses feature coming soon", Toast.LENGTH_SHORT).show();
+        // Navigate to CourseManagementActivity
+        Intent intent = new Intent(this, CourseManagementActivity.class);
+        startActivity(intent);
     }
 
     private void systemSettings() {
-        // TODO: Open System Settings activity
-        Toast.makeText(this, "System Settings feature coming soon", Toast.LENGTH_SHORT).show();
+        if (currentAdmin.hasPrivilege(Admin.AdminPrivilegeLevel.DEPARTMENT_ADMIN)) {
+            // Navigate to SystemSettingsActivity
+            Intent intent = new Intent(this, SystemSettingsActivity.class);
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "You need Department Admin or higher privileges to access system settings",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void viewReports() {
@@ -81,24 +185,22 @@ public class AdminDashboardActivity extends AppCompatActivity {
     }
 
     private void viewLogs() {
-        // TODO: Open Logs activity
-        Toast.makeText(this, "Logs feature coming soon", Toast.LENGTH_SHORT).show();
+        if (currentAdmin.getPrivilegeLevel() == Admin.AdminPrivilegeLevel.SUPER_ADMIN) {
+            // TODO: Open Logs activity
+            Toast.makeText(this, "Logs feature coming soon", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "You need Super Admin privileges to access system logs",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void backupRestore() {
-        // TODO: Open Backup & Restore activity
-        Toast.makeText(this, "Backup & Restore feature coming soon", Toast.LENGTH_SHORT).show();
-    }
-
-    private void setupUserInfo() {
-        Admin admin = (Admin) sessionManager.getUserData();
-        if (admin != null) {
-            String welcomeMessage = "Welcome, " + admin.getName() + "!";
-            tvWelcome.setText(welcomeMessage);
-
-            String adminIdText = "ID: " + (admin.getAdminId() != null ?
-                    admin.getAdminId() : "Unknown");
-            tvAdminId.setText(adminIdText);
+        if (currentAdmin.getPrivilegeLevel() == Admin.AdminPrivilegeLevel.SUPER_ADMIN) {
+            // TODO: Open Backup & Restore activity
+            Toast.makeText(this, "Backup & Restore feature coming soon", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "You need Super Admin privileges to access backup and restore",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 

@@ -79,117 +79,21 @@
                             android:layout_marginTop="4dp"
                             android:text="ID: ADM001"
                             android:textColor="@color/grey_600" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
 
-            <!-- System Stats Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="System Overview"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="@color/grey_400" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <!-- Total Users Stat -->
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/tvAdminType"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="8dp">
-
-                            <TextView
-                                android:id="@+id/tvTotalUsers"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="1,250"
-                                android:textColor="@color/purple_700"
-                                android:textSize="24sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Total Users"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
-                        <!-- Active Courses Stat -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="8dp">
-
-                            <TextView
-                                android:id="@+id/tvActiveCourses"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="45"
-                                android:textColor="@color/teal_700"
-                                android:textSize="24sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Active Courses"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
-                        <!-- Today's Attendance Stat -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="8dp">
-
-                            <TextView
-                                android:id="@+id/tvTodayAttendance"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="87%"
-                                android:textColor="#FF9800"
-                                android:textSize="24sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Today's Attendance"
-                                android:textSize="14sp" />
-                        </LinearLayout>
+                            android:layout_marginTop="4dp"
+                            android:text="Department Admin"
+                            android:textColor="@color/purple_700"
+                            android:textStyle="bold"
+                            android:background="@drawable/badge_background"
+                            android:backgroundTint="#E8E4F3"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

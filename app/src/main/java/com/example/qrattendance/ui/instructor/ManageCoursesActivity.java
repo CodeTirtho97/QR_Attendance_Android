@@ -67,7 +67,7 @@ public class ManageCoursesActivity extends AppCompatActivity implements CourseAd
 
     private void initViews() {
         recyclerViewCourses = findViewById(R.id.recyclerViewCourses);
-        emptyStateView = findViewById(R.id.emptyStateView);
+        emptyStateView = findViewById(R.id.tvNoCourses);
         progressBar = findViewById(R.id.progressBar);
         fabAddCourse = findViewById(R.id.fabAddCourse);
 

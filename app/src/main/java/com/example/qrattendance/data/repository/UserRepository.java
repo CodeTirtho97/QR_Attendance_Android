@@ -92,6 +92,43 @@ public class UserRepository {
     }
 
     /**
+     * Fetch all instructors
+     *
+     * @param listener callback for results
+     */
+    public void fetchInstructors(OnUsersLoadedListener listener) {
+        isLoading.setValue(true);
+
+        firestore.collection(USERS_COLLECTION)
+                .whereEqualTo("role", "INSTRUCTOR")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Map<String, Object>> instructors = new ArrayList<>();
+
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Map<String, Object> userData = document.getData();
+                        userData.put("userId", document.getId());
+                        instructors.add(userData);
+                    }
+
+                    isLoading.setValue(false);
+                    if (listener != null) {
+                        listener.onUsersLoaded(instructors);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    String errorMsg = "Failed to load instructors: " + e.getMessage();
+                    Log.e(TAG, errorMsg);
+                    errorMessage.setValue(errorMsg);
+                    isLoading.setValue(false);
+
+                    if (listener != null) {
+                        listener.onError(errorMsg);
+                    }
+                });
+    }
+
+    /**
      * Get a user by ID
      *
      * @param userId   User ID

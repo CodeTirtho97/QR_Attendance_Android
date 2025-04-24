@@ -125,6 +125,19 @@
             android:name=".ui.admin.AddEditUserActivity"
             android:exported="false"
             android:theme="@style/Theme.QRAttendance.NoActionBar" />
+        <activity
+            android:name=".ui.admin.AddEditCourseActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+
+        <activity
+            android:name=".ui.admin.CourseManagementActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
+        <activity
+            android:name=".ui.admin.SystemSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRAttendance.NoActionBar" />
 
     </application>
 </manifest>
